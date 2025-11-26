@@ -90,7 +90,7 @@ class VCMI(ConanFile):
             self.requires("qt/[~5.15.2]")
 
         if self.options.with_onnxruntime:
-            self.requires("onnxruntime/1.18.1")
+            self.requires("onnxruntime/1.23.2")
 
     def validate(self):
         # FFmpeg
