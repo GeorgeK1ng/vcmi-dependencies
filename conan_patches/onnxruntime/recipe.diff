@@ -1,25 +1,24 @@
-index 0757ecd..587294b 100644
+diff --git a/recipes/onnxruntime/all/conanfile.py b/recipes/onnxruntime/all/conanfile.py
+index 6c3ac07..abc1234 100644
 --- a/recipes/onnxruntime/all/conanfile.py
 +++ b/recipes/onnxruntime/all/conanfile.py
-@@ -34,6 +34,11 @@ class OnnxRuntimeConan(ConanFile):
-         "fPIC": True,
-         "with_xnnpack": False,
-         "with_cuda": False,
-+        # Prevents libcurl dependency (fails to build due to system zlib)
-+        # NOTE:
-+        # 'use_system_tz_db' is specific to date/3.0.1 (version pinned by onnxruntime/1.18.1).
-+        # Newer date recipes would need the tz_db=system option instead.
+@@ -32,6 +32,11 @@ class OnnxRuntimeConan(ConanFile):
+         "shared": [True, False],
+         "fPIC": [True, False],
+         "with_xnnpack": [True, False],
+         "with_cuda": [True, False],
++        # Prevent libcurl dependency (fails to build on Windows runners)
++        # NOTE: This option name is specific to date/3.0.1.
++        # Newer recipe versions use tz_db=system instead.
 +        "date/*:use_system_tz_db": True,
      }
-     short_paths = True
-
-@@ -47,7 +52,7 @@ class OnnxRuntimeConan(ConanFile):
-     @property
+     default_options = {
+         "shared": False,
+@@ -65,7 +70,7 @@ class OnnxRuntimeConan(ConanFile):
      def _compilers_minimum_version(self):
          return {
--            "Visual Studio": "17",
+             "Visual Studio": "17",
 -            "msvc": "193",
-+            "Visual Studio": "17",
 +            "msvc": "192",
              "gcc": "9",
              "clang": "5",
