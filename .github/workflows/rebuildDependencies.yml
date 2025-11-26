@@ -13,34 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: mac-intel
-            os: macos-14
-            before_install: macos.sh
-            conan_profiles: '["macos-intel", "base/apple-system"]'
-            conan_system_libs: bzip2 libiconv sqlite3 zlib
-          - platform: mac-arm
-            os: macos-14
-            before_install: macos.sh
-            conan_profiles: '["macos-arm", "base/apple-system"]'
-            conan_system_libs: bzip2 libiconv sqlite3 zlib
-          - platform: ios
-            os: macos-14
-            before_install: macos.sh
-            conan_profiles: '["ios-arm64", "base/apple-system"]'
-            conan_system_libs: bzip2 libiconv sqlite3 zlib
-          - platform: android-armeabi-v7a
-            os: ubuntu-latest
-            before_install: android-32.sh
-            conan_profiles: '["android-32-ndk", "base/android-system"]'
-            conan_system_libs: zlib
-          - platform: android-arm64-v8a
-            os: ubuntu-latest
-            conan_profiles: '["android-64-ndk", "base/android-system"]'
-            conan_system_libs: zlib
-          - platform: android-x64
-            os: ubuntu-latest
-            conan_profiles: '["android-x64-ndk", "base/android-system"]'
-            conan_system_libs: zlib
           - platform: windows-x64
             os: windows-latest
             conan_profiles: '["msvc-x64"]'
@@ -119,6 +91,7 @@ jobs:
 
     - name: Build recipes with our patches
       run: |
+        set -x
         cciRepo='conan-center-index'
         branchName='master'
         recipePathQt='recipes/qt'
@@ -134,13 +107,19 @@ jobs:
         git sparse-checkout set \
           recipes/minizip \
           recipes/flac \
+          recipes/onnx \
+          recipes/onnxruntime \
           $recipePathQt \
 
         git checkout
 
+        # Patch conan recipe to prevent dragging libcurl as a dependency
+        # (can't be done via VCMI's conanfile as onnxruntime is built beforehand)
+        git apply --ignore-whitespace ../conan_patches/onnxruntime/recipe.diff
+
         # versions must be synced with: conan_patches/<package>/conandata.yml
         # if no custom patches are required for a package, it should be removed from here
-        for p in minizip/1.3.1 flac/1.4.2 ; do
+        for p in minizip/1.3.1 flac/1.4.2 onnx/1.16.2 onnxruntime/1.18.1 ; do
           IFS_OLD="$IFS"
           IFS=/
           read package version <<<"$p"
@@ -148,6 +127,8 @@ jobs:
 
           if [[ $package == qt ]] ; then
             packagePath="$recipePathQt/5.x.x"
+          elif [[ $package =~ ^onnx ]] && ${{ contains(matrix.conan_options, 'with_onnxruntime=False') }} ; then
+            continue
           else
             packagePath="recipes/$package/all"
           fi
@@ -219,8 +200,11 @@ jobs:
 
     - name: Remove build requirements' binaries
       run: |
+        set -x
         graphFile='graph.json'
-        packageListFile='pkglist.json'
+        hostPackagesFile='packages-host.json'
+        buildPackagesFile='packages-build.json'
+        buildFilteredPackagesFile='packages-build-filtered.txt'
 
         conan graph info . \
           $CONAN_PROFILES \
@@ -229,12 +213,27 @@ jobs:
           --build=never \
           --no-remote \
           > "$graphFile"
+
         conan list \
           --graph "$graphFile" \
           --graph-context=build-only \
           --format=json \
-          > "$packageListFile"
-        conan remove --list "$packageListFile" --confirm
+          > $buildPackagesFile
+        conan list \
+          --graph "$graphFile" \
+          --graph-context=host \
+          --format=json \
+          > $hostPackagesFile
+        # Some are both build and host requirements and must not be removed
+        # => exclude them from the list
+        cat $buildPackagesFile $hostPackagesFile | jq -s '
+          .[0]["Local Cache"] as $build_packages
+          | (.[1]["Local Cache"] | keys) as $host_package_names
+          | $build_packages
+          | with_entries(select(.key as $k | $host_package_names | index($k) == null)) as $packages
+          | {"Local Cache": $packages}
+        ' > $buildFilteredPackagesFile
+        conan remove --list "$buildFilteredPackagesFile" --confirm
 
     - name: Create list of built packages
       run: |
