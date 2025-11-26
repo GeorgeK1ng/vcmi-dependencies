@@ -2,7 +2,8 @@ diff --git a/recipes/onnxruntime/all/conanfile.py b/recipes/onnxruntime/all/cona
 index 0757ecd..587294b 100644
 --- a/recipes/onnxruntime/all/conanfile.py
 +++ b/recipes/onnxruntime/all/conanfile.py
-@@ -31,12 +31,18 @@ class OnnxRuntimeConan(ConanFile):
+@@ -31,16 +31,21 @@
+ class OnnxRuntimeConan(ConanFile):
      package_type = "library"
      settings = "os", "arch", "compiler", "build_type"
      options = {
@@ -24,7 +25,7 @@ index 0757ecd..587294b 100644
      }
      short_paths = True
  
-@@ -52,7 +58,7 @@ class OnnxRuntimeConan(ConanFile):
+@@ -52,8 +57,8 @@
      @property
      def _compilers_minimum_version(self):
          return {
