@@ -87,6 +87,9 @@ class VCMI(ConanFile):
         else:
             self.requires("qt/[~5.15.2]")
 
+        if self.options.with_onnxruntime:
+            self.requires("onnxruntime/1.18.1")
+
     def validate(self):
         # FFmpeg
         if is_msvc(self) and self.options.with_ffmpeg and self.dependencies["ffmpeg"].options.shared != True:
