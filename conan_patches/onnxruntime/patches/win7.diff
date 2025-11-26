@@ -65,16 +65,59 @@
      const auto error_code = GetLastError();
 --- a/onnxruntime/core/platform/windows/env_time.cc
 +++ b/onnxruntime/core/platform/windows/env_time.cc
-@@ -22,6 +22,12 @@ limitations under the License.
+@@ -18,6 +18,7 @@ limitations under the License.
+ 
+ #include <time.h>
+ #include <windows.h>
++#include <sysinfoapi.h>
+ #include <chrono>
  #include <numeric>
  #include <algorithm>
+@@ -28,14 +29,10 @@ namespace {
  
-+#ifndef GetSystemTimePreciseAsFileTime
-+static void WINAPI GetSystemTimePreciseAsFileTime(LPFILETIME lpSystemTimeAsFileTime) {
-+    GetSystemTimeAsFileTime(lpSystemTimeAsFileTime);
-+}
-+#endif
-+
- namespace onnxruntime {
+ class WindowsEnvTime : public EnvTime {
+  public:
+-  WindowsEnvTime() : GetSystemTimePreciseAsFileTime_(GetSystemTimePreciseAsFileTime) {}
++  WindowsEnvTime() = default;
  
- namespace {
+   uint64_t NowMicros() override {
+-    if (GetSystemTimePreciseAsFileTime_ != NULL) {
+-      // GetSystemTimePreciseAsFileTime function is only available in latest
+-      // versions of Windows, so we need to check for its existence here.
+-      // All std::chrono clocks on Windows proved to return
+-      // values that may repeat, which is not good enough for some uses.
++    // System time in 100-ns ticks since 1601-01-01
+       constexpr int64_t kUnixEpochStartTicks = 116444736000000000i64;
+       constexpr int64_t kFtToMicroSec = 10;
+ 
+@@ -43,7 +40,8 @@ class WindowsEnvTime : public EnvTime {
+       // just any microseconds because it is often used as an argument
+       // to TimedWait() on condition variable
+       FILETIME system_time;
+-      GetSystemTimePreciseAsFileTime_(&system_time);
++      // Get current system time as FILETIME (available on all supported Windows versions)
++      GetSystemTimeAsFileTime(&system_time);
+ 
+       LARGE_INTEGER li;
+       li.LowPart = system_time.dwLowDateTime;
+@@ -54,16 +52,11 @@ class WindowsEnvTime : public EnvTime {
+       li.QuadPart /= kFtToMicroSec;
+       return li.QuadPart;
+     }
+-    using namespace std::chrono;
+-    return duration_cast<microseconds>(system_clock::now().time_since_epoch())
+-        .count();
+-  }
+-
+-  void SleepForMicroseconds(int64_t micros) { Sleep(static_cast<DWORD>(micros) / 1000); }
+ 
+- private:
+-  typedef VOID(WINAPI* FnGetSystemTimePreciseAsFileTime)(LPFILETIME);
+-  FnGetSystemTimePreciseAsFileTime GetSystemTimePreciseAsFileTime_;
++  void SleepForMicroseconds(int64_t micros) {
++    DWORD ms = static_cast<DWORD>((micros + 999) / 1000);
++    Sleep(ms);
++  }
+ };
+ 
+ }  // namespace
