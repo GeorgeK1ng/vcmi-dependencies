@@ -1,3 +1,5 @@
+diff --git a/recipes/onnxruntime/all/conanfile.py b/recipes/onnxruntime/all/conanfile.py
+index 0757ecd..587294b 100644
 --- a/recipes/onnxruntime/all/conanfile.py
 +++ b/recipes/onnxruntime/all/conanfile.py
 @@ -31,12 +31,18 @@ class OnnxRuntimeConan(ConanFile):
