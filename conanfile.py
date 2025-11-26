@@ -28,11 +28,13 @@ class VCMI(ConanFile):
     options = {
         "target_pre_windows10": [True, False],
         "with_ffmpeg": [True, False],
+        "with_onnxruntime": [True, False],
         "lua_lib": [None, "luajit", "lua"]
     }
     default_options = {
         "target_pre_windows10": False,
         "with_ffmpeg": True,
+        "with_onnxruntime": True,
         "lua_lib": "luajit",
     }
 
