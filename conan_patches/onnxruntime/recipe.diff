@@ -12,4 +12,15 @@ index 0757ecd..587294b 100644
 +        "date/*:use_system_tz_db": True,
      }
      short_paths = True
- 
+
+@@ -47,7 +52,7 @@ class OnnxRuntimeConan(ConanFile):
+     @property
+     def _compilers_minimum_version(self):
+         return {
+-            "Visual Studio": "17",
+-            "msvc": "193",
++            "Visual Studio": "17",
++            "msvc": "192",
+             "gcc": "9",
+             "clang": "5",
+             "apple-clang": "10",
