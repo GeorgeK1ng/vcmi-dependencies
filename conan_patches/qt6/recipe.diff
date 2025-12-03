@@ -1,7 +1,25 @@
 diff --git a/recipes/qt/6.x.x/conanfile.py b/recipes/qt/6.x.x/conanfile.py
-index b55a2ef88..52d2a4275 100644
+index b55a2ef88..70b99614c 100644
 --- a/recipes/qt/6.x.x/conanfile.py
 +++ b/recipes/qt/6.x.x/conanfile.py
+@@ -266,7 +266,7 @@ class QtConan(ConanFile):
+         self.no_copy_source = not (self.settings_build.os == "Windows" and self.options.get_safe("qtwebengine"))
+ 
+     def validate_build(self):
+-        check_min_cppstd(self, 17)
++        check_min_cppstd(self, 14)
+ 
+     def validate(self):
+         skip_ci_reason = self.conf.get("user.conancenter:skip_ci_build", check_type=str)
+@@ -277,7 +277,7 @@ class QtConan(ConanFile):
+         if self.settings_target is None:
+             # Raise when consumed in the host context, but allow comaptible when
+             # in the build context
+-            check_min_cppstd(self, 17)
++            check_min_cppstd(self, 14)
+ 
+         if self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "12":
+             raise ConanInvalidConfiguration("apple-clang >= 12 required by qt >= 6.4.0")
 @@ -287,8 +287,8 @@ class QtConan(ConanFile):
              raise ConanInvalidConfiguration("apple-clang >= 13.1 is required by qt >= 6.6.1 cf QTBUG-119490")
  
