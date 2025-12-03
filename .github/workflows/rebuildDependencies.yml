@@ -184,7 +184,7 @@ jobs:
 
         git checkout
 
-        for p in ${{ contains(matrix.conan_options, '"&:lua_lib=lua"') && ' ' || 'luajit/2.1.0-beta3' }} qt/5.15.16 ; do
+        for p in ${{ contains(matrix.conan_options, '"&:lua_lib=lua"') && ' ' || 'luajit/2.1.0-beta3' }} qt/6.8.3 ; do
           IFS_OLD="$IFS"
           IFS=/
           read package version <<<"$p"
