@@ -138,6 +138,9 @@ jobs:
 
         git checkout
 
+        # Patch conan recipe to support v142 (192) toolset for 6.8.3
+        git apply --ignore-whitespace ../conan_patches/qt6/recipe.diff
+
         # versions must be synced with: conan_patches/<package>/conandata.yml
         # if no custom patches are required for a package, it should be removed from here
         for p in minizip/1.3.1 flac/1.4.2 qt/6.8.3 ; do
