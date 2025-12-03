@@ -83,9 +83,9 @@ class VCMI(ConanFile):
 
         # launcher
         if self.settings.os == "Android":
-            self.requires("qt/[~5.15.14]") # earlier versions have serious bugs
+            self.requires("qt/[~6.8.3]") # earlier versions have serious bugs
         else:
-            self.requires("qt/[~5.15.2]")
+            self.requires("qt/[~6.8.3]")
 
     def validate(self):
         # FFmpeg
