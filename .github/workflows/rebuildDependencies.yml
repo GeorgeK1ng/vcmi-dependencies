@@ -147,7 +147,7 @@ jobs:
           IFS="$IFS_OLD"
 
           if [[ $package == qt ]] ; then
-            packagePath="$recipePathQt/5.x.x"
+            packagePath="$recipePathQt/6.x.x"
           else
             packagePath="recipes/$package/all"
           fi
