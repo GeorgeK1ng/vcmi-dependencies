@@ -1,3 +1,20 @@
+diff --git a/cmake/QtWindowsHelpers.cmake b/cmake/QtWindowsHelpers.cmake
+index 7a48e092906..d6255bff18a 100644
+--- a/cmake/QtWindowsHelpers.cmake
++++ b/cmake/QtWindowsHelpers.cmake
+@@ -5,10 +5,10 @@ function(qt_internal_check_msvc_versions)
+     if(NOT MSVC OR QT_NO_MSVC_MIN_VERSION_CHECK)
+         return()
+     endif()
+-    set(min_msvc_version "1930")
++    set(min_msvc_version "1929")
+     if(MSVC_VERSION VERSION_LESS min_msvc_version)
+         message(FATAL_ERROR
+-            "Qt requires at least Visual Studio 2022 (MSVC ${min_msvc_version} or newer), "
++            "Qt requires at least Visual Studio 2019 (MSVC ${min_msvc_version} or newer), "
+             "you're building against version ${MSVC_VERSION}. "
+             "You can turn off this version check by setting QT_NO_MSVC_MIN_VERSION_CHECK to ON."
+         )
 diff --git a/src/corelib/io/qstandardpaths_win.cpp b/src/corelib/io/qstandardpaths_win.cpp
 index 805ce65a5ac..6ed351d2e82 100644
 --- a/src/corelib/io/qstandardpaths_win.cpp
