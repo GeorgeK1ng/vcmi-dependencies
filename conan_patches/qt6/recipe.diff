@@ -1,5 +1,5 @@
 diff --git a/recipes/qt/6.x.x/conanfile.py b/recipes/qt/6.x.x/conanfile.py
-index b55a2ef88..70b99614c 100644
+index b55a2ef88..418773e5e 100644
 --- a/recipes/qt/6.x.x/conanfile.py
 +++ b/recipes/qt/6.x.x/conanfile.py
 @@ -266,7 +266,7 @@ class QtConan(ConanFile):
@@ -31,3 +31,12 @@ index b55a2ef88..70b99614c 100644
  
              if self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "15":
                  raise ConanInvalidConfiguration("apple-clang >= 14 is required by qt >= 6.8.3")
+@@ -507,6 +507,8 @@ class QtConan(ConanFile):
+         tc.variables["QT_BUILD_TESTS"] = "OFF"
+         tc.variables["QT_BUILD_EXAMPLES"] = "OFF"
+ 
++        tc.variables["QT_NO_MSVC_MIN_VERSION_CHECK"] = "ON"
++
+         if is_msvc(self) and "MT" in msvc_runtime_flag(self):
+             tc.variables["FEATURE_static_runtime"] = "ON"
+ 
