@@ -176,6 +176,8 @@ onetbb/*:tbbproxy=False
     '-no-feature-imageformat_jpeg',
     '-no-feature-imageformat_ppm',
     '-no-feature-imageformat_xbm',
+    '-DQT_FEATURE_d3d11=OFF',
+    '-DQT_FEATURE_d3d12=OFF',
 ] %}
 qt/*:config={{ qtConfig|join(' ') }}
 qt/*:essential_modules=False
