@@ -141,7 +141,7 @@ jobs:
         git checkout
 
         # Patch conan recipe to support msvc version 192
-        git apply --ignore-whitespace ../conan_patches/onnxruntime/recipe.diff
+        # git apply --ignore-whitespace ../conan_patches/onnxruntime/recipe.diff
 
         # versions must be synced with: conan_patches/<package>/conandata.yml
         # if no custom patches are required for a package, it should be removed from here
