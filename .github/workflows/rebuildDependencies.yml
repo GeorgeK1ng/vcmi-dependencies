@@ -119,6 +119,8 @@ jobs:
 
     - name: Build recipes with our patches
       run: |
+        # We still clone CCI for recipes we build from source path (minizip/flac/qt).
+        # BUT: onnx + onnxruntime are pinned to exact recipe revisions on ConanCenter.
         cciRepo='conan-center-index'
         branchName='master'
         recipePathQt='recipes/qt'
@@ -134,15 +136,21 @@ jobs:
         git sparse-checkout set \
           recipes/minizip \
           recipes/flac \
-          recipes/onnx \
-          recipes/onnxruntime \
           $recipePathQt \
 
         git checkout
 
+        # Download pinned recipes (exact recipe revisions)
+        conan download "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42" -r conancenter --recipe --source
+        conan download "onnxruntime/1.18.1#e8f3c15343775960592dba50733c6696" -r conancenter --recipe --source
+
+        # Resolve local cache paths to those pinned recipes
+        ONNX_RECIPE_PATH="$(conan cache path "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42")"
+        ORT_RECIPE_PATH="$(conan cache path "onnxruntime/1.18.1#e8f3c15343775960592dba50733c6696")"
+
         # versions must be synced with: conan_patches/<package>/conandata.yml
         # if no custom patches are required for a package, it should be removed from here
-        for p in minizip/1.3.1 flac/1.4.2 onnx/1.20.0 onnxruntime/1.23.2 ; do
+        for p in minizip/1.3.1 flac/1.4.2 onnx/1.16.2 onnxruntime/1.18.1 ; do
           IFS_OLD="$IFS"
           IFS=/
           read package version <<<"$p"
@@ -150,6 +158,10 @@ jobs:
 
           if [[ $package == qt ]] ; then
             packagePath="$recipePathQt/5.x.x"
+          elif [[ $package == onnx ]] ; then
+            packagePath="$ONNX_RECIPE_PATH"
+          elif [[ $package == onnxruntime ]] ; then
+            packagePath="$ORT_RECIPE_PATH"
           else
             packagePath="recipes/$package/all"
           fi
