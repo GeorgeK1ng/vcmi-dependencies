@@ -141,7 +141,7 @@ jobs:
         git checkout
 
         # Ensure conancenter remote exists (needed for -r conancenter)
-        conan remote add conancenter https://center.conan.io --force
+        conan remote add conancenter https://center2.conan.io --force
         
         # Download pinned recipes (exact recipe revisions)
         conan download -r conancenter --only-recipe "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42"
