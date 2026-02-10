@@ -154,6 +154,18 @@ jobs:
         ls -la "$ONNX_RECIPE_PATH"
         ls -la "$ONNX_RECIPE_PATH/patches" || true
 
+        # Ensure ONNX recipe has patch files it references during export_sources()
+        ONNX_PATCH_DIR="$ONNX_RECIPE_PATH/patches"
+        mkdir -p "$ONNX_PATCH_DIR"
+        
+        # Copy patches from our repo overlay into the pinned recipe folder
+        if [[ -d "$CUSTOM_PATCHES_PATH/onnx/patches" ]]; then
+          cp -f "$CUSTOM_PATCHES_PATH/onnx/patches/"* "$ONNX_PATCH_DIR/" || true
+        fi
+        
+        echo "ONNX patches in recipe cache:"
+        ls -la "$ONNX_PATCH_DIR" || true
+
         pushd "$ORT_RECIPE_PATH"
         git init -q
         git apply --ignore-whitespace "$GITHUB_WORKSPACE/conan_patches/onnxruntime/recipe.diff"
