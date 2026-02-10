@@ -9,6 +9,8 @@ ninja/1.12.1
 # TODO: remove after https://github.com/conan-io/conan-center-index/pull/27125 is merged
 # Qt 5 depends on 0.4.8, but it doesn't build for iOS
 md4c/0.4.8: md4c/0.5.2
+# Fixes protobuf/6.32.1: Invalid: Current cppstd (14) is lower than the required C++ standard (17)
+protobuf/*: protobuf/3.21.12
 
 [conf]
 tools.cmake.cmaketoolchain:generator=Ninja
