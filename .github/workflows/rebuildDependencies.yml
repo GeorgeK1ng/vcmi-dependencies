@@ -166,6 +166,17 @@ jobs:
         echo "ONNX patches in recipe cache:"
         ls -la "$ONNX_PATCH_DIR" || true
 
+        # Ensure ONNXRuntime recipe has patch files it references during export_sources()
+        ORT_PATCH_DIR="$ORT_RECIPE_PATH/patches"
+        mkdir -p "$ORT_PATCH_DIR"
+        
+        if [[ -d "$CUSTOM_PATCHES_PATH/onnxruntime/patches" ]]; then
+          cp -f "$CUSTOM_PATCHES_PATH/onnxruntime/patches/"* "$ORT_PATCH_DIR/" || true
+        fi
+        
+        echo "ONNXRuntime patches in recipe cache:"
+        ls -la "$ORT_PATCH_DIR" || true
+
         pushd "$ORT_RECIPE_PATH"
         git init -q
         git apply --ignore-whitespace "$GITHUB_WORKSPACE/conan_patches/onnxruntime/recipe.diff"
