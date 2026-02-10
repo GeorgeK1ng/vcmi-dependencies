@@ -153,16 +153,7 @@ jobs:
 
         pushd "$ORT_RECIPE_PATH"
         git init -q
-        PATCH_FILE="$CUSTOM_PATCHES_PATH/onnxruntime/recipe.diff"
-        if [[ ! -f "$PATCH_FILE" ]]; then
-          echo "Patch not found: $PATCH_FILE"
-          echo "Listing $CUSTOM_PATCHES_PATH:"
-          ls -la "$CUSTOM_PATCHES_PATH" || true
-          echo "Listing $CUSTOM_PATCHES_PATH/onnxruntime:"
-          ls -la "$CUSTOM_PATCHES_PATH/onnxruntime" || true
-          exit 1
-        fi
-        git apply --ignore-whitespace "$PATCH_FILE"
+        git apply --ignore-whitespace "$GITHUB_WORKSPACE/conan_patches/onnxruntime/recipe.diff"
         popd
 
         # versions must be synced with: conan_patches/<package>/conandata.yml
