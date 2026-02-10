@@ -151,6 +151,9 @@ jobs:
         ONNX_RECIPE_PATH="$(conan cache path "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42")"
         ORT_RECIPE_PATH="$(conan cache path "onnxruntime/1.18.1#e8f3c15343775960592dba50733c6696")"
 
+        ls -la "$ONNX_RECIPE_PATH"
+        ls -la "$ONNX_RECIPE_PATH/patches" || true
+
         pushd "$ORT_RECIPE_PATH"
         git init -q
         git apply --ignore-whitespace "$GITHUB_WORKSPACE/conan_patches/onnxruntime/recipe.diff"
