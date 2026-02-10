@@ -144,8 +144,8 @@ jobs:
         conan remote add conancenter https://center2.conan.io --force
         
         # Download pinned recipes (exact recipe revisions)
-        conan download -r conancenter --only-recipe "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42"
-        conan download -r conancenter --only-recipe "onnxruntime/1.18.1#e8f3c15343775960592dba50733c6696"
+        conan download -r conancenter "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42"
+        conan download -r conancenter "onnxruntime/1.18.1#e8f3c15343775960592dba50733c6696"
 
         # Resolve local cache paths to those pinned recipes
         ONNX_RECIPE_PATH="$(conan cache path "onnx/1.16.2#b2afe58c5c3d85542d1aeef169586f42")"
