@@ -178,12 +178,17 @@ jobs:
           fi
 
           # Windows workaround for https://bugreports.qt.io/browse/QTBUG-84543
+          extra_conf=""
+          if [[ -f "$CUSTOM_PATCHES_PATH/$package/conandata.yml" ]]; then
+            extra_conf="--core-conf core.sources.patch:extra_path=$CUSTOM_PATCHES_PATH"
+          fi
+          
           PATH="$WINDOWS_PERL_DIR:$PATH" conan create "$packagePath" \
             --version=$version \
             $CONAN_PROFILES \
             --build=missing \
             --test-folder= \
-            --core-conf core.sources.patch:extra_path=$CUSTOM_PATCHES_PATH \
+            $extra_conf \
             ${{ startsWith(matrix.platform, 'android') && '-o "qt/*:android_sdk=$ANDROID_HOME"' || '' }}
         done
 
