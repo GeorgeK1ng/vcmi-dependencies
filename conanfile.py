@@ -131,6 +131,8 @@ class VCMI(ConanFile):
         # launcher
         if self.settings.os == "Android":
             self.requires("qt/[~5.15.14]") # earlier versions have serious bugs
+        elif self.settings.os == "Windows" and self.options.get_safe("target_pre_windows10", False):
+            self.requires("qt/[=6.8.3]")  # exact pin: do not float to 6.10.x
         else:
             self.requires("qt/[~5.15.2]")
 
