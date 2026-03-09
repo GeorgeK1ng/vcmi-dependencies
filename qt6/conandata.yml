@@ -1,5 +1,0 @@
-patches:
-  "6.8.3":
-    - patch_file: "patches/6.8.3-win7.diff"
-      patch_description: |
-        Adds Windows 7+ support to Qt 6.8.3
