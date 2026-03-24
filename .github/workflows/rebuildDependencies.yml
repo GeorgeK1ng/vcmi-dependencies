@@ -73,6 +73,11 @@ jobs:
             os: ubuntu-24.04
             conan_profiles: '["linux-x64"]'
 
+          - platform: linux-x86
+            os: ubuntu-24.04
+            #before_install: android-32.sh
+            conan_profiles: '["linux-x86]'
+
           - platform: linux-arm64
             os: ubuntu-24.04-arm
             conan_profiles: '["linux-arm64"]'
