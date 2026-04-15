@@ -356,6 +356,7 @@ jobs:
       with:
         name: list of dependencies-${{ matrix.platform }}
         path: ${{ env.DEPS_LIST_FILE }}
+
     - name: Upload binaries
       uses: actions/upload-artifact@v4
       with:
