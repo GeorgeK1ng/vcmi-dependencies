@@ -184,14 +184,21 @@ jobs:
       if: ${{ startsWith(matrix.platform, 'windows') }}
       shell: pwsh
       run: |
-        $msysBashCandidates = @(
-          (Join-Path $env:MSYS2_LOCATION "usr\bin\bash.exe"),
+        $msysBashCandidates = @()
+        if ($env:MSYS2_LOCATION) {
+          $msysBashCandidates += (Join-Path $env:MSYS2_LOCATION "usr\bin\bash.exe")
+        }
+        if ($env:RUNNER_TEMP) {
+          $msysBashCandidates += (Join-Path $env:RUNNER_TEMP "msys64\usr\bin\bash.exe")
+        }
+        $msysBashCandidates += @(
           "C:\msys64\usr\bin\bash.exe",
           "D:\msys64\usr\bin\bash.exe"
-        ) | Where-Object { $_ -and (Test-Path $_) }
+        )
+        $msysBashCandidates = $msysBashCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
 
         if ($msysBashCandidates.Count -eq 0) {
-          throw "MSYS2 bash.exe not found. MSYS2_LOCATION='$env:MSYS2_LOCATION'"
+          throw "MSYS2 bash.exe not found. MSYS2_LOCATION='$env:MSYS2_LOCATION', RUNNER_TEMP='$env:RUNNER_TEMP'"
         }
         $msysBash = $msysBashCandidates[0]
 
@@ -200,8 +207,6 @@ jobs:
         tools.microsoft.bash:path=$msysBash
         tools.microsoft.bash:subsystem=msys2
         "@
-
-        & $msysBash -l -c "pacman -S base-devel gcc --noconfirm"
 
     - name: Install system libs recipes
       if: ${{ matrix.conan_system_libs }}
