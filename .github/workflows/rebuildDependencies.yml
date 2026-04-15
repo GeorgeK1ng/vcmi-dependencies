@@ -110,6 +110,15 @@ jobs:
         pipx install conan
         conan profile detect
 
+    - name: Install MSYS2 on Windows
+      if: ${{ startsWith(matrix.platform, 'windows') }}
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          base-devel
+          gcc
+
     # CMake/Ninja version should be synced with runners
     # https://github.com/actions/runner-images/tree/main/images
     - name: Prepare platform tools
@@ -139,7 +148,7 @@ jobs:
         echo CONAN_PROFILES="--profile=$PWD/conan_profiles/$profiles --profile=$platformToolsProfile" >> "$GITHUB_ENV"
 
     - name: Configure MSYS2
-      if: ${{ startsWith(matrix.platform, 'windows') && matrix.platform != 'windows-arm64' }}
+      if: ${{ startsWith(matrix.platform, 'windows') }}
       shell: pwsh
       run: |
         $msysBash = "C:\msys64\usr\bin\bash.exe"
@@ -149,8 +158,6 @@ jobs:
         tools.microsoft.bash:path=$msysBash
         tools.microsoft.bash:subsystem=msys2
         "@
-
-        Invoke-Expression "& $msysBash -l -c 'pacman -S base-devel gcc --noconfirm'"
 
     - name: Install system libs recipes
       if: ${{ matrix.conan_system_libs }}
