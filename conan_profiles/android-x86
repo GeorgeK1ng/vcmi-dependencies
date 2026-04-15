@@ -1,0 +1,21 @@
+include(base/android)
+
+[settings]
+arch=x86
+os.api_level=21
+
+[conf]
+# remove after switching to API level >= 24
+{% set file_funcs_macros = ['fseeko=fseek', 'ftello=ftell'] %}
+flac/*:tools.build:defines={{ file_funcs_macros }}
+luajit/*:tools.build:defines={{ file_funcs_macros }}
+opusfile/*:tools.build:defines={{ file_funcs_macros }}
+
+[options]
+# Workaround for linker error:
+# "relocation R_386_32 cannot be used against local symbol; recompile with -fPIC"
+# Force mpg123 to build as shared to avoid non-PIC ASM objects on Android x86
+mpg123/*:shared=True
+# Disable x86 assembly for Android x86 (32-bit) because FFmpeg fails to compile due 
+# to register allocation issues in inline assembly (Clang error: "requires more registers than available")
+ffmpeg/*:with_asm=False
