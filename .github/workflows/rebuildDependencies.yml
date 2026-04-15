@@ -141,7 +141,7 @@ jobs:
     - name: Setup Conan Client
       run: |
         pipx install conan
-        conan profile detect
+        conan profile detect --force
 
     - name: Install MSYS2 on Windows
       if: ${{ startsWith(matrix.platform, 'windows') }}
