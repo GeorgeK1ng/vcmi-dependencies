@@ -192,6 +192,8 @@ jobs:
         tools.microsoft.bash:subsystem=msys2
         "@
 
+        Invoke-Expression "& $msysBash -l -c 'pacman -S base-devel gcc --noconfirm'"
+
     - name: Install system libs recipes
       if: ${{ matrix.conan_system_libs }}
       run: |
