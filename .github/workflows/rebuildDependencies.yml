@@ -45,18 +45,30 @@ jobs:
             os: ubuntu-latest
             conan_profiles: '["android-x64-ndk", "base/android-system"]'
             conan_system_libs: zlib
-          - platform: windows-x64
+          - platform: windows-x64-dynamic
             os: windows-latest
             conan_profiles: '["msvc-x64"]'
-            conan_options: -o "&:target_pre_windows10=True"
-          - platform: windows-x86
+            conan_options: -o "&:target_pre_windows10=True" -o "&:windows_libs=dynamic"
+          - platform: windows-x64-static
+            os: windows-latest
+            conan_profiles: '["msvc-x64"]'
+            conan_options: -o "&:target_pre_windows10=True" -o "&:windows_libs=static"
+          - platform: windows-x86-dynamic
             os: windows-latest
             conan_profiles: '["msvc-x86"]'
-            conan_options: -o "&:target_pre_windows10=True"
-          - platform: windows-arm64
+            conan_options: -o "&:target_pre_windows10=True" -o "&:windows_libs=dynamic"
+          - platform: windows-x86-static
+            os: windows-latest
+            conan_profiles: '["msvc-x86"]'
+            conan_options: -o "&:target_pre_windows10=True" -o "&:windows_libs=static"
+          - platform: windows-arm64-dynamic
             os: windows-11-arm
             conan_profiles: '["msvc-arm64"]'
-            conan_options: -o "&:lua_lib=lua"
+            conan_options: -o "&:lua_lib=lua" -o "&:windows_libs=dynamic"
+          - platform: windows-arm64-static
+            os: windows-11-arm
+            conan_profiles: '["msvc-arm64"]'
+            conan_options: -o "&:lua_lib=lua" -o "&:windows_libs=static"
           - platform: linux-x64
             os: ubuntu-24.04
             conan_profiles: '["linux-x64"]'
