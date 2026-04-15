@@ -117,7 +117,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.CONAN_HOME }}
-        key: conan2-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('conanfile.py', 'conan_profiles/**', 'conan_patches/**', '.github/workflows/rebuildDependencies.yml') }}
+        key: conan2-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('**') }}
         restore-keys: |
           conan2-${{ runner.os }}-${{ matrix.platform }}-
           conan2-${{ runner.os }}-
