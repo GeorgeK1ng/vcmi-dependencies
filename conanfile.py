@@ -28,6 +28,7 @@ class VCMI(ConanFile):
 
     options = {
         "target_pre_windows10": [True, False],
+        "windows_libs": ["dynamic", "static"],
         "with_ffmpeg": [True, False],
         "with_onnxruntime": [True, False],
         "with_discord_presence": [True, False],
@@ -35,6 +36,7 @@ class VCMI(ConanFile):
     }
     default_options = {
         "target_pre_windows10": False,
+        "windows_libs": "dynamic",
         "with_ffmpeg": True,
         "with_onnxruntime": True,
         "with_discord_presence": True,
@@ -45,19 +47,23 @@ class VCMI(ConanFile):
         isMobile = self.settings.os == "iOS" or self.settings.os == "Android"
 
         # shared options should be synced with conan_profiles/base/common (and possibly others)
-        self.options["boost"].shared = True
-        self.options["bzip2"].shared = True
-        self.options["libiconv"].shared = True
-        self.options["libpng"].shared = True
-        self.options["minizip"].shared = True
-        self.options["ogg"].shared = True
-        self.options["opus"].shared = True
-        self.options["qt"].shared = self.settings.os != "iOS"
-        self.options["xz_utils"].shared = True
-        self.options["zlib"].shared = True
+        # for Windows, deps linkage can be switched between dynamic/static via windows_libs
+        isWindowsStatic = self.settings.os == "Windows" and self.options.get_safe("windows_libs", "dynamic") == "static"
+        isShared = not isWindowsStatic
+        self.options["boost"].shared = isShared
+        self.options["bzip2"].shared = isShared
+        self.options["ffmpeg"].shared = isShared
+        self.options["libiconv"].shared = isShared
+        self.options["libpng"].shared = isShared
+        self.options["minizip"].shared = isShared
+        self.options["ogg"].shared = isShared
+        self.options["opus"].shared = isShared
+        self.options["qt"].shared = isShared and self.settings.os != "iOS"
+        self.options["xz_utils"].shared = isShared
+        self.options["zlib"].shared = isShared
 
         # static on "single app" platforms
-        isSdlShared = not isMobile
+        isSdlShared = not isMobile and isShared
         self.options["sdl"].shared = isSdlShared
         self.options["sdl_image"].shared = isSdlShared
         self.options["sdl_mixer"].shared = isSdlShared
@@ -72,6 +78,7 @@ class VCMI(ConanFile):
 
         if self.settings.os != "Windows":
             del self.options.target_pre_windows10
+            del self.options.windows_libs
 
         if isMobile:
             del self.options.with_discord_presence
@@ -86,7 +93,7 @@ class VCMI(ConanFile):
             # TODO: in Qt 6 this option doesn't exist
             self.options["qt"].qtandroidextras = True
 
-        if is_msvc(self):
+        if is_msvc(self) and self.options.get_safe("windows_libs", "dynamic") == "dynamic":
             # required because VCMI uses dynamic runtime
             self.options["boost"].shared = True
             self.options["ffmpeg"].shared = True
