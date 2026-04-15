@@ -5,6 +5,9 @@ on:
     paths-ignore:
       - README.md
       - .github/workflows/releaseFromRun.yml
+  schedule:
+    # Every Saturday at 02:00 UTC (weekend nightly rebuild)
+    - cron: "0 2 * * 6"
   workflow_dispatch:
 
 concurrency:
@@ -106,8 +109,18 @@ jobs:
     - name: Define common variables
       run: |
         echo CUSTOM_PATCHES_PATH="$PWD/conan_patches" >> "$GITHUB_ENV"
+        echo CONAN_HOME="$PWD/.conan2" >> "$GITHUB_ENV"
         echo DEPS_FILE="dependencies-${{ matrix.platform }}.txz" >> "$GITHUB_ENV"
         echo DEPS_LIST_FILE="dependencies-${{ matrix.platform }}.txt" >> "$GITHUB_ENV"
+
+    - name: Cache Conan home
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CONAN_HOME }}
+        key: conan2-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('conanfile.py', 'conan_profiles/**', 'conan_patches/**', '.github/workflows/rebuildDependencies.yml') }}
+        restore-keys: |
+          conan2-${{ runner.os }}-${{ matrix.platform }}-
+          conan2-${{ runner.os }}-
 
     - name: Prepare CI
       if: ${{ matrix.before_install }}
