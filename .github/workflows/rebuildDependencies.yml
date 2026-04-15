@@ -184,7 +184,16 @@ jobs:
       if: ${{ startsWith(matrix.platform, 'windows') }}
       shell: pwsh
       run: |
-        $msysBash = "C:\msys64\usr\bin\bash.exe"
+        $msysBashCandidates = @(
+          (Join-Path $env:MSYS2_LOCATION "usr\bin\bash.exe"),
+          "C:\msys64\usr\bin\bash.exe",
+          "D:\msys64\usr\bin\bash.exe"
+        ) | Where-Object { $_ -and (Test-Path $_) }
+
+        if ($msysBashCandidates.Count -eq 0) {
+          throw "MSYS2 bash.exe not found. MSYS2_LOCATION='$env:MSYS2_LOCATION'"
+        }
+        $msysBash = $msysBashCandidates[0]
 
         # appends to [conf]
         Add-Content -Path platformTools -Value @"
@@ -192,7 +201,7 @@ jobs:
         tools.microsoft.bash:subsystem=msys2
         "@
 
-        Invoke-Expression "& $msysBash -l -c 'pacman -S base-devel gcc --noconfirm'"
+        & $msysBash -l -c "pacman -S base-devel gcc --noconfirm"
 
     - name: Install system libs recipes
       if: ${{ matrix.conan_system_libs }}
