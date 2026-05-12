@@ -1,0 +1,4 @@
+include(base/msvc2026-intel)
+
+[settings]
+arch=x86_64

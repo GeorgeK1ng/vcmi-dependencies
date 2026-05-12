@@ -1,0 +1,19 @@
+{% import 'vars.jinja' as vars %}
+
+include(common)
+
+[settings]
+compiler=msvc
+compiler.cppstd={{ vars.cppstd }}
+compiler.runtime=dynamic
+compiler.version=195
+os=Windows
+
+{{ vars.glaze_cppstd }}
+
+[conf]
+# VS 2026
+tools.microsoft.msbuild:vs_version=18
+
+[options]
+ffmpeg/*:shared=True
