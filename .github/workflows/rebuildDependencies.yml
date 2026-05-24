@@ -80,6 +80,12 @@ jobs:
         if (-not $installPath) {
           throw "Visual Studio installation not found"
         }
+        $vsMajor = & $vswhere -latest -products * -property catalog_productLineVersion
+        if (-not $vsMajor) {
+          throw "Unable to detect Visual Studio major version from vswhere"
+        }
+        Write-Host "Detected Visual Studio major version: $vsMajor"
+        echo "MSBUILD_VS_VERSION=$vsMajor" >> $env:GITHUB_ENV
 
         # setup.exe belongs to the Visual Studio Installer, not to a specific VS instance folder.
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
@@ -130,7 +136,10 @@ jobs:
         Add-Content -Path $platformToolsPath -Value @"
         tools.microsoft.bash:path=$msysBash
         tools.microsoft.bash:subsystem=msys2
+        tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION
         "@
+
+        Write-Host "Configured tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION"
 
         Invoke-Expression "& $msysBash -l -c 'pacman -S base-devel gcc --noconfirm'"
 
