@@ -10,8 +10,8 @@ compiler.version=192
 compiler.update=9
 
 [conf]
-# VS 2022
-tools.microsoft.msbuild:vs_version=17
+# VS 2026 (while keeping v142 toolset for x86/x64)
+tools.microsoft.msbuild:vs_version=18
 
 {% set _WIN32_WINNT_WIN7 = '0x0601' %}
 {% set NTDDI_WIN7 = '0x06010000' %}
