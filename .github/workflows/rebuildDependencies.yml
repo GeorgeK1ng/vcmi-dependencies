@@ -67,14 +67,20 @@ jobs:
         windowsPerl=$(which -a perl | fgrep Strawberry)
         echo "WINDOWS_PERL_DIR=$(dirname "$windowsPerl")" >> "$GITHUB_ENV"
 
+    - name: Detect Visual Studio version (Windows)
+      if: ${{ startsWith(matrix.platform, 'windows') }}
+      shell: pwsh
+      run: |
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vsMajor = & $vswhere -latest -products * -property catalog_productLineVersion
+        echo "MSBUILD_VS_VERSION=$vsMajor" >> $env:GITHUB_ENV
+
     - name: Install MSVC v142 toolset (Windows non-ARM)
       if: ${{ startsWith(matrix.platform, 'windows') && matrix.platform != 'windows-arm64' }}
       shell: pwsh
       run: |
         $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
         $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-        $vsMajor = & $vswhere -latest -products * -property catalog_productLineVersion
-        echo "MSBUILD_VS_VERSION=$vsMajor" >> $env:GITHUB_ENV
 
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
         & $installer modify --installPath "$installPath" --add Microsoft.VisualStudio.Component.VC.v142.x86.x64 --quiet --norestart
@@ -94,6 +100,14 @@ jobs:
       run: |
         BUILD_ACTION=prepare ./build.sh >> "$GITHUB_ENV"
 
+    - name: Configure VS version for Conan (Windows)
+      if: ${{ startsWith(matrix.platform, 'windows') }}
+      shell: pwsh
+      run: |
+        $platformToolsPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath platformTools
+        Add-Content -Path $platformToolsPath -Value "tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION"
+        Write-Host "Configured tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION"
+
     - name: Configure MSYS2
       if: ${{ startsWith(matrix.platform, 'windows') && matrix.platform != 'windows-arm64' }}
       shell: pwsh
@@ -105,10 +119,7 @@ jobs:
         Add-Content -Path $platformToolsPath -Value @"
         tools.microsoft.bash:path=$msysBash
         tools.microsoft.bash:subsystem=msys2
-        tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION
         "@
-
-        Write-Host "Configured tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION"
 
         Invoke-Expression "& $msysBash -l -c 'pacman -S base-devel gcc --noconfirm'"
 
