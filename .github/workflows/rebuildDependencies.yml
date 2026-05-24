@@ -72,7 +72,8 @@ jobs:
       shell: pwsh
       run: |
         $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-        $vsMajor = & $vswhere -latest -products * -property catalog_productLineVersion
+        $vsInstallationVersion = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationVersion
+        $vsMajor = ($vsInstallationVersion -split '\.')[0]
         echo "MSBUILD_VS_VERSION=$vsMajor" >> $env:GITHUB_ENV
 
     - name: Install MSVC v142 toolset (Windows non-ARM)
