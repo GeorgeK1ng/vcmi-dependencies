@@ -72,12 +72,24 @@ jobs:
       shell: pwsh
       run: |
         $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if (-not (Test-Path $vswhere)) {
+          throw "vswhere.exe not found at: $vswhere"
+        }
+
         $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
         if (-not $installPath) {
           throw "Visual Studio installation not found"
         }
 
-        $installer = Join-Path -Path (Split-Path -Path $installPath -Parent) -ChildPath "Installer\setup.exe"
+        # setup.exe belongs to the Visual Studio Installer, not to a specific VS instance folder.
+        $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+        if (-not (Test-Path $installer)) {
+          $installer = Join-Path -Path (Split-Path -Path $vswhere -Parent) -ChildPath "setup.exe"
+        }
+        if (-not (Test-Path $installer)) {
+          throw "Visual Studio Installer setup.exe not found"
+        }
+
         & $installer modify --installPath "$installPath" --add Microsoft.VisualStudio.Component.VC.v142.x86.x64 --quiet --wait --norestart
 
         Write-Host "Installed VS components (filter: v142):"
