@@ -75,10 +75,6 @@ jobs:
         $vsInstallationVersion = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationVersion
         $vsMajor = ($vsInstallationVersion -split '\.')[0]
         echo "MSBUILD_VS_VERSION=$vsMajor" >> $env:GITHUB_ENV
-        # Conan expects VS major generation here (16/17/18), not marketing year labels (2019/2022/2026).
-        $platformToolsPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath platformTools
-        Add-Content -Path $platformToolsPath -Value "tools.microsoft.msbuild:vs_version=$vsMajor"
-        Write-Host "Configured tools.microsoft.msbuild:vs_version=$vsMajor"
 
     - name: Install MSVC v142 toolset (Windows non-ARM)
       if: ${{ startsWith(matrix.platform, 'windows') && matrix.platform != 'windows-arm64' }}
@@ -104,6 +100,16 @@ jobs:
     - name: Prepare platform tools
       run: |
         BUILD_ACTION=prepare ./build.sh >> "$GITHUB_ENV"
+
+    - name: Configure VS version for Conan (Windows)
+      if: ${{ startsWith(matrix.platform, 'windows') }}
+      shell: pwsh
+      run: |
+        # platformTools is generated in the previous step, so append after prepare.
+        # Conan expects VS major generation (16/17/18), not marketing year labels (2019/2022/2026).
+        $platformToolsPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath platformTools
+        Add-Content -Path $platformToolsPath -Value "tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION"
+        Write-Host "Configured tools.microsoft.msbuild:vs_version=$env:MSBUILD_VS_VERSION"
 
     - name: Configure MSYS2
       if: ${{ startsWith(matrix.platform, 'windows') && matrix.platform != 'windows-arm64' }}
