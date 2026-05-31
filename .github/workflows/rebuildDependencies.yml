@@ -87,46 +87,15 @@ jobs:
         $vsMajor = ($vsInstallationVersion -split '\.')[0]
         echo "MSBUILD_VS_VERSION=$vsMajor" >> $env:GITHUB_ENV
 
-    - name: Install and verify MSVC v142 toolset (Windows non-ARM)
+    - name: Install MSVC v142 toolset (Windows non-ARM)
       if: ${{ startsWith(matrix.platform, 'windows') && matrix.platform != 'windows-arm64' }}
       shell: pwsh
       run: |
-        $ErrorActionPreference = 'Stop'
-
-        $v142Component = 'Microsoft.VisualStudio.ComponentGroup.VC.Tools.142.x86.x64'
         $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
         $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
 
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-        # Start-Process joins ArgumentList into a single command line, so keep
-        # explicit quotes around paths that can contain spaces.
-        $quotedInstallPath = "`"$installPath`""
-        $installerProcess = Start-Process `
-          -FilePath $installer `
-          -ArgumentList @('modify', '--installPath', $quotedInstallPath, '--add', $v142Component, '--quiet', '--norestart') `
-          -Wait `
-          -PassThru
-
-        if ($installerProcess.ExitCode -ne 0) {
-          throw "Visual Studio Installer failed to add $v142Component with exit code $($installerProcess.ExitCode)"
-        }
-
-        $v142InstallPath = & $vswhere -latest -products * -requires $v142Component -property installationPath
-        if (-not $v142InstallPath) {
-          throw "$v142Component was not found after Visual Studio Installer completed"
-        }
-
-        $v142Toolset = Get-ChildItem -Path (Join-Path $v142InstallPath 'VC\Tools\MSVC') `
-          -Directory `
-          -Filter '14.29.*' `
-          -ErrorAction SilentlyContinue |
-          Select-Object -First 1
-
-        if (-not $v142Toolset) {
-          throw "MSVC v142 14.29 toolset was not found under $v142InstallPath"
-        }
-
-        Write-Host "Using MSVC v142 toolset at $($v142Toolset.FullName)"
+        & $installer modify --installPath "$installPath" --add Microsoft.VisualStudio.ComponentGroup.VC.Tools.142.x86.x64 --quiet --norestart
 
     - uses: actions/setup-java@v4
       if: ${{ startsWith(matrix.platform, 'android') }}
