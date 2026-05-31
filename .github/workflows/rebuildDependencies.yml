@@ -98,9 +98,12 @@ jobs:
         $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
 
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+        # Start-Process joins ArgumentList into a single command line, so keep
+        # explicit quotes around paths that can contain spaces.
+        $quotedInstallPath = "`"$installPath`""
         $installerProcess = Start-Process `
           -FilePath $installer `
-          -ArgumentList @('modify', '--installPath', $installPath, '--add', $v142Component, '--quiet', '--norestart') `
+          -ArgumentList @('modify', '--installPath', $quotedInstallPath, '--add', $v142Component, '--quiet', '--norestart') `
           -Wait `
           -PassThru
 
