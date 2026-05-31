@@ -9,6 +9,7 @@ include(msvc)
 compiler.version=192
 compiler.update=9
 
+[conf]
 {% set _WIN32_WINNT_WIN7 = '0x0601' %}
 {% set NTDDI_WIN7 = '0x06010000' %}
 {{ windows.set_defines(
