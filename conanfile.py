@@ -16,7 +16,6 @@ class VCMI(ConanFile):
     ]
     _clientRequires = [
         "libsquish/[^1.15]",
-        "onetbb/[^2021.7]",
         "sdl_image/[^2.8.2]",
         "sdl_mixer/[^2.8.0]",
         "sdl_ttf/[^2.0.18]",
@@ -123,6 +122,11 @@ class VCMI(ConanFile):
             self.requires(f"{lib}/{libVersion}")
 
         # client
+        if self.options.get_safe("target_pre_windows10", False):
+            self.requires("onetbb/[>=2021.7 <2021.10]")
+        else:
+            self.requires("onetbb/[^2021.7]")
+
         if self.options.with_ffmpeg:
             self.requires("ffmpeg/[>=4.4]")
 
