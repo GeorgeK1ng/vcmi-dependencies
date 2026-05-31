@@ -12,6 +12,8 @@ cciRecipePathQt='recipes/qt'
 cciRepoName='conan-center-index'
 conanOptionOrdinaryLuaLib='&:lua_lib=lua'
 conanOptionTargetPreWindows10='&:target_pre_windows10=True'
+conanOptionWithoutOnnxruntime='&:with_onnxruntime=False'
+conanOptionWithoutDiscordPresence='&:with_discord_presence=False'
 if command -v python3 >/dev/null ; then
 	python=python3
 else
@@ -274,9 +276,17 @@ case "$platform" in
 		CONAN_PROFILES_JSON_ARRAY='["msvc-x64"]'
 		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10'"
 		;;
+	windows-x64-xp)
+		CONAN_PROFILES_JSON_ARRAY='["msvc-x64-xp"]'
+		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10' --options '$conanOptionWithoutOnnxruntime' --options '$conanOptionWithoutDiscordPresence'"
+		;;
 	windows-x86)
 		CONAN_PROFILES_JSON_ARRAY='["msvc-x86"]'
 		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10'"
+		;;
+	windows-x86-xp)
+		CONAN_PROFILES_JSON_ARRAY='["msvc-x86-xp"]'
+		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10' --options '$conanOptionWithoutOnnxruntime' --options '$conanOptionWithoutDiscordPresence'"
 		;;
 	*)
 		[ -z "$platform" ] || error "unknown platform: $platform"

@@ -1,0 +1,19 @@
+{% import 'windows.jinja' as windows %}
+
+include(msvc)
+
+[settings]
+# Visual Studio 2017 v141_xp / 14.16 / 19.16
+compiler.version=191
+compiler.update=6
+compiler.toolset=v141_xp
+# MSVC 19.16 does not support C++20 well enough for Conan's msvc cppstd=20 mode.
+compiler.cppstd=17
+
+[conf]
+{% set _WIN32_WINNT_WINXP = '0x0501' %}
+{% set NTDDI_WINXP = '0x05010000' %}
+{{ windows.set_defines(
+    _WIN32_WINNT_WINXP,
+    NTDDI_WINXP,
+) }}
