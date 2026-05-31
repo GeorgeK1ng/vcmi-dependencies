@@ -17,7 +17,7 @@ Prerequisites: Python 3, Conan, CMake, Ninja - all of them must be accessible in
 
 Platform-specific preparations:
 - if you're on Windows, you must install [Strawberry Perl](https://strawberryperl.com/) (required to build Qt 5) and set `WINDOWS_PERL_DIR` environment variable pointing to a directory containing `perl.exe`, for example: `export WINDOWS_PERL_DIR='/c/Program Files/Strawberry Perl/bin'`
-- if building for Windows, you must install the latest MSVC **v142** toolset
+- if building for Windows, you must install the latest MSVC **v142** toolset; the experimental `windows-*-xp` targets require the MSVC **v141_xp** toolset instead
 - if you're on Linux and want to build for Android 32-bit, you must install `libc6-dev-i386` package (required to build LuaJIT), for example: `sudo apt install libc6-dev-i386`
 
 Run the script with `bash build.sh` (or `./build.sh`) and pass the desired platform (*host* platform in Conan terms) as first parameter or in `BUILD_PLATFORM` environment variable, for example: `bash build.sh android-arm64`
