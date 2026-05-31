@@ -165,6 +165,11 @@ build_recipes_with_patches() {
 
 build_onnx_recipes_with_patches() {
 	print_current_step
+	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionWithoutOnnxruntime"* ]] ; then
+		echo 'onnxruntime disabled, skip'
+		return
+	fi
+
 	pushd "$tempDir/$cciRepoName"
 
 	# parent of d6cf51e85d5c869bc794a6f68efc5a55834c806e where ONNX* recipes changed

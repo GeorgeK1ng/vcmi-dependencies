@@ -101,7 +101,17 @@ jobs:
         $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
 
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-        & $installer modify --installPath "$installPath" --add Microsoft.VisualStudio.Component.VC.v142.x86.x64 --quiet --norestart
+        $arguments = @(
+          "modify",
+          "--installPath", $installPath,
+          "--add", "Microsoft.VisualStudio.Component.VC.v142.x86.x64",
+          "--quiet",
+          "--norestart"
+        )
+        $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -notin @(0, 3010)) {
+          throw "Visual Studio Installer failed with exit code $($process.ExitCode)"
+        }
 
     - name: Install MSVC v141_xp toolset (Windows XP)
       if: ${{ startsWith(matrix.platform, 'windows') && endsWith(matrix.platform, '-xp') }}
@@ -111,12 +121,27 @@ jobs:
         $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
 
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-        & $installer modify `
-          --installPath "$installPath" `
-          --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 `
-          --add Microsoft.VisualStudio.Component.WinXP `
-          --quiet `
-          --norestart
+        $arguments = @(
+          "modify",
+          "--installPath", $installPath,
+          "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64",
+          "--add", "Microsoft.VisualStudio.Component.WinXP",
+          "--quiet",
+          "--norestart"
+        )
+        $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -notin @(0, 3010)) {
+          throw "Visual Studio Installer failed with exit code $($process.ExitCode)"
+        }
+
+        $v141Toolset = Join-Path -Path $installPath -ChildPath "VC\Tools\MSVC\14.16*"
+        if (-not (Test-Path $v141Toolset)) {
+          $installedToolsetsPath = Join-Path -Path $installPath -ChildPath "VC\Tools\MSVC"
+          if (Test-Path $installedToolsetsPath) {
+            Get-ChildItem $installedToolsetsPath | Select-Object -ExpandProperty FullName
+          }
+          throw "MSVC v141_xp requested, but the v14.16 toolset was not found under $installedToolsetsPath"
+        }
 
     - uses: actions/setup-java@v4
       if: ${{ startsWith(matrix.platform, 'android') }}
@@ -166,6 +191,7 @@ jobs:
         BUILD_ACTION=build_recipes_with_patches ./build.sh
 
     - name: Build ONNX with our patches
+      if: ${{ !endsWith(matrix.platform, '-xp') }}
       run: |
         BUILD_ACTION=build_onnx_recipes_with_patches ./build.sh
 
