@@ -9,5 +9,5 @@ patches:
         Fixes detection of x86 windows targets during cross-compilation.
     - patch_file: "patches/win7.diff"
       patch_description: |
-        Fixes compile errors on for windows 7 targets:
-        error C3861: 'CreateFile2': identifier not found
+        Fixes Windows 7 target compatibility issues, including unavailable Win32 APIs
+        such as CreateFile2, GetSystemTimePreciseAsFileTime, and PathCch helpers.
