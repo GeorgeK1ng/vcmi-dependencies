@@ -121,3 +121,86 @@
  };
  
  }  // namespace
+--- a/onnxruntime/core/platform/path_lib.cc
++++ b/onnxruntime/core/platform/path_lib.cc
+@@ -17,18 +17,6 @@
+ #include "core/common/status.h"
+ #include "core/common/common.h"
+ #ifdef _WIN32
+-
+-#if _GAMING_XBOX
+-// Hacky, but the PathCch* APIs work on Xbox. Presumably PathCch.h needs to be updated to include the
+-// GAMES partition. It would be worthwhile to investigate this a bit more (or just use std::filesystem).
+-#pragma push_macro("WINAPI_FAMILY")
+-#undef WINAPI_FAMILY
+-#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
+-#include <PathCch.h>
+-#pragma pop_macro("WINAPI_FAMILY")
+-#pragma comment(lib, "PathCch.lib")
+-#else
+-#include <PathCch.h>
+-#pragma comment(lib, "PathCch.lib")
+-#endif
+ #else
+ #include <libgen.h>
+ #include <stdlib.h>
+@@ -38,19 +26,42 @@
+ namespace onnxruntime {
+ 
+ namespace {
+ 
+ Status RemoveFileSpec(PWSTR pszPath, size_t cchPath) {
+   assert(pszPath != nullptr && pszPath[0] != L'\0');
+-  // Remove any trailing backslashes
+-  auto result = PathCchRemoveBackslash(pszPath, cchPath);
+-  if (result == S_OK || result == S_FALSE) {
+-    // Remove any trailing filename
+-    result = PathCchRemoveFileSpec(pszPath, cchPath);
+-    if (result == S_OK || result == S_FALSE) {
+-      // If we wind up with an empty string, turn it into '.'
+-      if (*pszPath == L'\0') {
+-        pszPath[0] = L'.';
+-        pszPath[1] = L'\0';
+-      }
+-      return Status::OK();
++
++  size_t length = wcsnlen(pszPath, cchPath);
++  if (length == cchPath) {
++    return Status(common::ONNXRUNTIME, common::FAIL, "unterminated path");
++  }
++
++  // Remove trailing backslashes, but keep drive roots such as "C:\" intact.
++  while (length > 0 && pszPath[length - 1] == L'\\') {
++    if (length == 3 && pszPath[1] == L':') {
++      break;
+     }
++    pszPath[--length] = L'\0';
+   }
+-  return Status(common::ONNXRUNTIME, common::FAIL, "unexpected failure");
++
++  // Remove trailing filename.
++  wchar_t* last_separator = wcsrchr(pszPath, L'\\');
++  if (last_separator == nullptr) {
++    pszPath[0] = L'.';
++    pszPath[1] = L'\0';
++    return Status::OK();
++  }
++
++  // Keep drive root, e.g. "C:\file.onnx" -> "C:\".
++  if (last_separator == pszPath + 2 && pszPath[1] == L':') {
++    last_separator[1] = L'\0';
++    return Status::OK();
++  }
++
++  // Otherwise remove the separator and everything after it.
++  *last_separator = L'\0';
++
++  if (*pszPath == L'\0') {
++    pszPath[0] = L'.';
++    pszPath[1] = L'\0';
++  }
++
++  return Status::OK();
+ }
+ 
+ }  // namespace
