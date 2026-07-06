@@ -1,5 +1,5 @@
 patches:
-  "1.16.2":
+  "1.20.1":
     - patch_file: "patches/apple-pre-2019.diff"
       patch_description: |
         Fixes errors for older apple targets:

@@ -1,5 +1,5 @@
 patches:
-  "1.18.1":
+  "1.24.4":
     - patch_file: "patches/android-64.diff"
       patch_description: |
         Fixes error for arm64-v8a targets:

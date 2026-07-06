@@ -99,7 +99,7 @@ class VCMI(ConanFile):
         # Conflict between boost/1.83.0 and boost/1.90.0 in the graph.
         # see https://docs.conan.io/2/knowledge/faq.html#getting-version-conflicts-even-when-using-version-ranges
         if self.options.with_onnxruntime:
-            self.requires("onnxruntime/1.18.1")
+            self.requires("onnxruntime/1.24.4")
 
         # lib
         # boost::filesystem removed support for Windows < 10 in v1.87

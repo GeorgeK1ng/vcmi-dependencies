@@ -167,17 +167,13 @@ build_onnx_recipes_with_patches() {
 	print_current_step
 	pushd "$tempDir/$cciRepoName"
 
-	# parent of d6cf51e85d5c869bc794a6f68efc5a55834c806e where ONNX* recipes changed
-	git fetch --no-tags origin 2d65e6a1500a8be291ddd16ef6360b6edbafd803
-	git -c advice.detachedHead=false checkout FETCH_HEAD
-
 	# Patch conan recipe to support msvc version 192
 	git apply --ignore-whitespace "$scriptDir/conan_patches/onnxruntime/recipe.diff"
 
 	# order matters! onnxruntime depends on onnx
 	build_recipes \
-		onnx/1.16.2 \
-		onnxruntime/1.18.1 \
+		onnx/1.20.1 \
+		onnxruntime/1.24.4 \
 
 	delete_current_dir_and_popd
 }
