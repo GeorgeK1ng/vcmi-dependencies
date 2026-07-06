@@ -168,7 +168,7 @@ build_onnx_recipes_with_patches() {
 	pushd "$tempDir/$cciRepoName"
 
 	# Patch conan recipe to support msvc version 192
-	git apply --ignore-whitespace "$scriptDir/conan_patches/onnxruntime/recipe.diff"
+	# git apply --ignore-whitespace "$scriptDir/conan_patches/onnxruntime/recipe.diff"
 
 	# order matters! onnxruntime depends on onnx
 	build_recipes \
