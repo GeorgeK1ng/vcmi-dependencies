@@ -14,6 +14,7 @@ cciRepoName='conan-center-index'
 cciQtRecipeRevision='990ef02afd83fa965fa654bdf3c156609f89f8b8'
 conanOptionOrdinaryLuaLib='&:lua_lib=lua'
 conanOptionTargetPreWindows10='&:target_pre_windows10=True'
+conanOptionQtVersionPrefix='&:qt_version='
 if command -v python3 >/dev/null ; then
 	python=python3
 else
@@ -97,24 +98,27 @@ build_recipes() {
 }
 
 verify_patched_qt_recipe() {
-	local qtRef='qt/6.8.3'
+	local qtVersion="$1"
+	local qtRef="qt/$qtVersion"
 	local recipePath
 	local exportSourcesPath
 	recipePath=$(conan cache path "$qtRef")
 	exportSourcesPath=$(conan cache path "$qtRef" --folder=export_source)
 
-	grep -Fq 'patches/6.8.3-win7.diff' "$recipePath/conandata.yml" \
+	grep -Fq "patches/$qtVersion-win7.diff" "$recipePath/conandata.yml" \
 		|| error "$qtRef cache recipe does not contain the Windows 7 patch metadata"
-	grep -Fq 'patches/6.8.3-win7-d3d11.diff' "$recipePath/conandata.yml" \
-		|| error "$qtRef cache recipe does not contain the D3D11 fallback patch metadata"
-	grep -Fq 'patches/6.8.3-win7-sdk.diff' "$recipePath/conandata.yml" \
-		|| error "$qtRef cache recipe does not contain the Win7 SDK fix patch metadata"
-	test -f "$exportSourcesPath/patches/6.8.3-win7.diff" \
+	test -f "$exportSourcesPath/patches/$qtVersion-win7.diff" \
 		|| error "$qtRef cache recipe does not contain the exported Windows 7 patch"
-	test -f "$exportSourcesPath/patches/6.8.3-win7-d3d11.diff" \
-		|| error "$qtRef cache recipe does not contain the exported D3D11 fallback patch"
-	test -f "$exportSourcesPath/patches/6.8.3-win7-sdk.diff" \
-		|| error "$qtRef cache recipe does not contain the exported Win7 SDK fix patch"
+	if [[ $qtVersion == '6.8.3' ]] ; then
+		grep -Fq 'patches/6.8.3-win7-d3d11.diff' "$recipePath/conandata.yml" \
+			|| error "$qtRef cache recipe does not contain the D3D11 fallback patch metadata"
+		grep -Fq 'patches/6.8.3-win7-sdk.diff' "$recipePath/conandata.yml" \
+			|| error "$qtRef cache recipe does not contain the Win7 SDK fix patch metadata"
+		test -f "$exportSourcesPath/patches/6.8.3-win7-d3d11.diff" \
+			|| error "$qtRef cache recipe does not contain the exported D3D11 fallback patch"
+		test -f "$exportSourcesPath/patches/6.8.3-win7-sdk.diff" \
+			|| error "$qtRef cache recipe does not contain the exported Win7 SDK fix patch"
+	fi
 	conan list "$qtRef:*" | grep -Fq "$qtRef" \
 		|| error "$qtRef patched package was not created"
 }
@@ -133,7 +137,7 @@ prepare() {
 	ninja="ninja/$(ninja --version)"
 
 	buildContextSettings=""
-	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+	if [[ "${QT_VARIANT:-qt5}" == qt6-* ]] ; then
 		# qttools makes Qt a native build requirement. Conan's auto-detected
 		# build profile defaults to C++14, while Qt 6 requires at least C++17.
 		# Keep this override exclusive to legacy Windows builds; every other
@@ -200,7 +204,12 @@ build_recipes_with_patches() {
 	# if no custom patches are required for a package, it should be removed from here
 	build_recipes minizip/1.3.2
 
-	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+	if [[ "${QT_VARIANT:-qt5}" == qt6-* ]] ; then
+		case "$QT_VARIANT" in
+			qt6-8-3) qtVersion='6.8.3' ;;
+			qt6-11-1) qtVersion='6.11.1' ;;
+			*) error "unknown Qt variant: $QT_VARIANT" ;;
+		esac
 		# Pin and patch the Qt recipe only for the explicit legacy-Windows build.
 		# Other platforms, normal Windows builds, and other Qt versions never use
 		# this checkout or recipe modification.
@@ -208,8 +217,8 @@ build_recipes_with_patches() {
 		git -c advice.detachedHead=false checkout FETCH_HEAD
 		git apply --check "$scriptDir/conan_patches/qt6/recipe.diff"
 		git apply "$scriptDir/conan_patches/qt6/recipe.diff"
-		build_recipes qt/6.8.3
-		verify_patched_qt_recipe
+		build_recipes "qt/$qtVersion"
+		verify_patched_qt_recipe "$qtVersion"
 
 		# The same sparse CCI checkout is reused by the following ONNX step.
 		# The patched Qt recipe and its sources are already exported to Conan's
@@ -243,8 +252,8 @@ build_onnx_recipes_with_patches() {
 
 build_recipes_from_cci_pull_requests() {
 	print_current_step
-	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
-		echo 'patched Qt 6.8.3 already built; skip the unrelated Qt 5 recipe'
+	if [[ "${QT_VARIANT:-qt5}" != 'qt5' ]] ; then
+		echo "patched ${QT_VARIANT} already built; skip the unrelated Qt 5 recipe"
 		return
 	fi
     # TODO: remove Qt5 when the following are merged:
@@ -341,11 +350,23 @@ case "$platform" in
 		;;
 	windows-x64)
 		CONAN_PROFILES_JSON_ARRAY='["msvc-x64"]'
-		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10'"
+		case "${QT_VARIANT:-qt5}" in
+			qt5) qtVersion='qt5' ;;
+			qt6-8-3) qtVersion='6.8.3' ;;
+			qt6-11-1) qtVersion='6.11.1' ;;
+			*) error "unknown Qt variant: ${QT_VARIANT:-}" ;;
+		esac
+		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10' --options '${conanOptionQtVersionPrefix}${qtVersion}'"
 		;;
 	windows-x86)
 		CONAN_PROFILES_JSON_ARRAY='["msvc-x86"]'
-		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10'"
+		case "${QT_VARIANT:-qt5}" in
+			qt5) qtVersion='qt5' ;;
+			qt6-8-3) qtVersion='6.8.3' ;;
+			qt6-11-1) qtVersion='6.11.1' ;;
+			*) error "unknown Qt variant: ${QT_VARIANT:-}" ;;
+		esac
+		CONAN_OPTIONS="--options '$conanOptionTargetPreWindows10' --options '${conanOptionQtVersionPrefix}${qtVersion}'"
 		;;
 	*)
 		[ -z "$platform" ] || error "unknown platform: $platform"

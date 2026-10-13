@@ -30,6 +30,7 @@ class VCMI(ConanFile):
 
     options = {
         "target_pre_windows10": [True, False],
+        "qt_version": ["qt5", "6.8.3", "6.11.1"],
         "with_ffmpeg": [True, False],
         "with_onnxruntime": [True, False],
         "with_discord_presence": [True, False],
@@ -37,6 +38,7 @@ class VCMI(ConanFile):
     }
     default_options = {
         "target_pre_windows10": False,
+        "qt_version": "qt5",
         "with_ffmpeg": True,
         "with_onnxruntime": True,
         "with_discord_presence": True,
@@ -74,6 +76,9 @@ class VCMI(ConanFile):
 
         if self.settings.os != "Windows":
             del self.options.target_pre_windows10
+            # Qt variants are Windows-only; keep every other platform on its
+            # existing Qt requirement and package graph.
+            del self.options.qt_version
 
         if isMobile:
             del self.options.with_discord_presence
@@ -82,6 +87,10 @@ class VCMI(ConanFile):
     def configure(self):
         self.options["qt"].qttools = True
         self.options["qt"].with_md4c = True
+        if self.settings.os == "Windows" and str(self.options.get_safe("qt_version", "qt5")) != "qt5":
+            # Qt Quick lives in qtdeclarative. Enable it only for the two Qt 6
+            # Windows packages whose D3D11 QRhi path is patched for Windows 7.
+            self.options["qt"].qtdeclarative = True
         if self.settings.os == "Android":
             # TODO: in Qt 6 this option doesn't exist
             self.options["qt"].qtandroidextras = True
@@ -133,9 +142,14 @@ class VCMI(ConanFile):
         # launcher
         if self.settings.os == "Android":
             self.requires("qt/[~5.15.14]") # earlier versions have serious bugs
-        elif self.settings.os == "Windows" and self.options.get_safe("target_pre_windows10", False):
-            # Exact pin: this recipe carries the Windows 7/8/8.1 source backport.
-            self.requires("qt/6.8.3")
+        elif self.settings.os == "Windows":
+            qtVersion = str(self.options.get_safe("qt_version", "qt5"))
+            if qtVersion == "qt5":
+                self.requires("qt/[~5.15.2]")
+            else:
+                # Exact pins: these recipes carry version-specific Windows
+                # 7/8/8.1 source backports and must not float to another Qt 6.
+                self.requires(f"qt/{qtVersion}")
         else:
             self.requires("qt/[~5.15.2]")
 

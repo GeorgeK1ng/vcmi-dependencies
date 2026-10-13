@@ -1,19 +1,36 @@
-# Qt 6.8.3 for Windows 7, 8, and 8.1
+# Qt 6 for Windows 7, 8, and 8.1
 
-This repository builds a source-patched `qt/6.8.3` package only when the VCMI
-root option `target_pre_windows10=True` is selected. Other platforms and the
-ordinary Windows 10+ configuration keep the existing Qt 5 dependency.
+The Windows x86 and x64 CI matrix builds three independent dependency archives:
+Qt 5, source-patched Qt 6.8.3, and source-patched Qt 6.11.1. The VCMI option
+`qt_version` selects the package while `target_pre_windows10=True` keeps the
+shared Windows 7 dependency constraints. Windows ARM64 and all non-Windows
+platforms retain their previous Qt 5 dependency.
 
 ## Pinned inputs
 
-- vcmi-dependencies base (`latest`): `68f3f22614a3b17c80aa603b0c013181db845048`
-- compared experiment (`Qt6_Win7`): `7161db952022a90bb636dffc074af1ba1e265740`
-- merge-base: `1210d49b440150d22d7ec283083feb63b1ef17af`
-- conan-center-index recipe: `990ef02afd83fa965fa654bdf3c156609f89f8b8`
-- compatibility source: crystalidea/qt6windows7 `v6.8.4`, commit
-  `5b0166ab2d15a1afbeb7bb63eaaf4dbaa3c17d27`
-- Qt source: the CCI `qt/6.8.3` archive with SHA-256
+- vcmi-dependencies base (`latest`):
+  [`68f3f22614a3b17c80aa603b0c013181db845048`](https://github.com/GeorgeK1ng/vcmi-dependencies/commit/68f3f22614a3b17c80aa603b0c013181db845048)
+- compared experiment (`Qt6_Win7`):
+  [`7161db952022a90bb636dffc074af1ba1e265740`](https://github.com/GeorgeK1ng/vcmi-dependencies/commit/7161db952022a90bb636dffc074af1ba1e265740)
+- merge-base:
+  [`1210d49b440150d22d7ec283083feb63b1ef17af`](https://github.com/GeorgeK1ng/vcmi-dependencies/commit/1210d49b440150d22d7ec283083feb63b1ef17af)
+- pinned [conan-center-index recipe commit](https://github.com/conan-io/conan-center-index/commit/990ef02afd83fa965fa654bdf3c156609f89f8b8):
+  `990ef02afd83fa965fa654bdf3c156609f89f8b8`
+- Qt 6.8.3 compatibility source:
+  [crystalidea/qt6windows7 at `5b0166a`](https://github.com/crystalidea/qt6windows7/tree/5b0166ab2d15a1afbeb7bb63eaaf4dbaa3c17d27)
+- official [QtBase v6.8.3 source](https://github.com/qt/qtbase/tree/v6.8.3) and
+  [Conan Center `qt/6.8.3` recipe](https://conan.io/center/recipes/qt?version=6.8.3),
+  with source archive SHA-256
   `cdd3a69967208276bb01af7ace7dba0ba53e679f886a4cbe624225c60fb73f2c`
+- Qt 6.11.1 compatibility source:
+  [forkgram/qt6windows7 at `2127fa0`](https://github.com/forkgram/qt6windows7/tree/2127fa0668b67fada62b7b4198ba979eaa638b6c)
+  (the requested [`6.11.1` branch](https://github.com/forkgram/qt6windows7/tree/6.11.1))
+- official [QtBase v6.11.1 source](https://github.com/qt/qtbase/tree/v6.11.1) and
+  [Conan Center `qt/6.11.1` recipe](https://conan.io/center/recipes/qt?version=6.11.1),
+  with source archive SHA-256
+  `252acef8c5ae68074d91cadba2ee4a83465051bbb970dd26e8f0daa0f3904e03`
+- workflow cache design:
+  [GeorgeK1ng/vcmi-dependencies `cache` branch](https://github.com/GeorgeK1ng/vcmi-dependencies/blob/cache/.github/workflows/rebuildDependencies.yml)
 
 The compatibility files were diffed against clean Qt 6.8.4 and that logical
 diff was applied to clean Qt 6.8.3. The two 6.8.3-specific conflicts (thread
@@ -23,6 +40,9 @@ separately in `6.8.3-win7-d3d11.diff`. A second VCMI patch,
 `6.8.3-win7-sdk.diff`, contains compile-time fixes for inconsistencies between
 Qt's Windows 10 SDK declarations and the Windows 7 NTDDI target. Both are
 applied after the imported backport so upstream-derived changes stay untouched.
+For 6.11.1, Forkgram already includes the SDK declarations and the D3D11
+factory/swapchain fallback, so its 77-file overlay is stored as one logical
+diff against the clean official Qt 6.11.1 tag instead of duplicating fixes.
 
 ## Toolchain and package shape
 
@@ -32,11 +52,12 @@ requires at least C++17), the dynamic MSVC runtime, and Release packages. The
 generated platform-tools profile sets only the required C++17 minimum for the
 native build context, because `qttools` makes Qt a build requirement as well as
 a host requirement. This does not lower the independently configured C++20
-host profile. The override is emitted only with `target_pre_windows10=True`;
-Windows ARM64, Linux, macOS, iOS, and Android retain their existing build
-profiles unchanged. The build machine may be a newer Windows release.
+host profile. Windows ARM64, Linux, macOS, iOS, and Android retain their
+existing build profiles unchanged. The C++17 override is emitted only for a
+selected Qt 6 variant. The build machine may be a newer Windows release.
 
-The patched Qt package is shared and includes Widgets, SVG, Qt Tools, and md4c.
+The patched Qt package is shared and includes Widgets, SVG, Qt Tools, md4c,
+and `qtdeclarative` (Qt Quick).
 Qt Multimedia, WebEngine, and PDF are not in the current VCMI Conan graph and
 are not built. Direct3D 11 RHI remains enabled: on Windows 7/8 the backport
 falls back to `CreateDXGIFactory1` and a DXGI 1.1 discard-model HWND swapchain.
@@ -66,6 +87,7 @@ Run from a Git Bash whose environment can locate `cl.exe` and Strawberry Perl:
 
 ```bash
 export WINDOWS_PERL_DIR='/c/Strawberry/perl/bin'
+export QT_VARIANT=qt6-8-3   # qt5, qt6-8-3, or qt6-11-1
 ./build.sh windows-x64
 # or
 ./build.sh windows-x86
@@ -85,11 +107,12 @@ BUILD_ACTION=build_normal_recipes ./build.sh windows-x64
 CCI, creates the Qt package locally, and then verifies both the merged patch
 metadata and exported patch file in the Conan cache. The later install does not
 use `--update`, so the locally exported recipe revision remains selected.
-The CCI pin and recipe modification are executed only for
-`target_pre_windows10=True`. Within that patched recipe, MSVC 19.29/v142 is
+The CCI pin and recipe modification are executed only for a `qt6-*` variant.
+Within that patched recipe, MSVC 19.29/v142 is
 accepted generally because it is the Windows 7 toolchain. The source backport
-and Direct3D compatibility changes remain restricted to exactly Qt 6.8.3. Other
-platforms retain the unmodified CCI recipe and existing dependency flow.
+and Direct3D compatibility changes remain restricted to the exact selected Qt
+6 version. Other platforms retain the unmodified CCI recipe and existing
+dependency flow.
 
 To inspect the resulting graph without the custom LuaJIT recipe, use:
 
@@ -98,6 +121,7 @@ conan graph info . \
   --profile:host=conan_profiles/msvc-x64 \
   --profile:build=default \
   --options='&:target_pre_windows10=True' \
+  --options='&:qt_version=6.8.3' \
   --options='&:lua_lib=lua'
 conan list 'qt/6.8.3#*:*'
 ```
