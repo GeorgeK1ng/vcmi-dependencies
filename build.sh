@@ -210,6 +210,12 @@ build_recipes_with_patches() {
 		git apply "$scriptDir/conan_patches/qt6/recipe.diff"
 		build_recipes qt/6.8.3
 		verify_patched_qt_recipe
+
+		# The same sparse CCI checkout is reused by the following ONNX step.
+		# The patched Qt recipe and its sources are already exported to Conan's
+		# cache, so restore only the tracked recipe edit before switching commits.
+		git apply --reverse --check "$scriptDir/conan_patches/qt6/recipe.diff"
+		git apply --reverse "$scriptDir/conan_patches/qt6/recipe.diff"
 	fi
 
 	# not deleting the cloned repo because it's still used in the next step
