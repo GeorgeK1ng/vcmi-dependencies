@@ -133,6 +133,9 @@ class VCMI(ConanFile):
         # launcher
         if self.settings.os == "Android":
             self.requires("qt/[~5.15.14]") # earlier versions have serious bugs
+        elif self.settings.os == "Windows" and self.options.get_safe("target_pre_windows10", False):
+            # Exact pin: this recipe carries the Windows 7/8/8.1 source backport.
+            self.requires("qt/6.8.3")
         else:
             self.requires("qt/[~5.15.2]")
 

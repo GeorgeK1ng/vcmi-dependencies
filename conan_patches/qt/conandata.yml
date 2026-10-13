@@ -1,4 +1,10 @@
 patches:
+  "6.8.3":
+    - "base_path": "qtbase"
+      "patch_file": "patches/6.8.3-win7.diff"
+      "patch_description": "Backport Windows 7, 8 and 8.1 compatibility from crystalidea/qt6windows7 v6.8.4"
+      "patch_type": "portability"
+      "patch_source": "https://github.com/crystalidea/qt6windows7/tree/5b0166ab2d15a1afbeb7bb63eaaf4dbaa3c17d27"
   "5.15.19":
     - "base_path": "qt5/qtbase"
       "patch_file": "patches/android-21-22.diff"

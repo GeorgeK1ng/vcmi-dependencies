@@ -10,6 +10,8 @@ tempDir="${tempDir//\\//}" # for Windows
 scriptDir=$(cd "$(dirname "$0")" && pwd)
 cciRecipePathQt='recipes/qt'
 cciRepoName='conan-center-index'
+# Pin the recipe whose conandata and source checksum the Qt patch was verified against.
+cciQtRecipeRevision='990ef02afd83fa965fa654bdf3c156609f89f8b8'
 conanOptionOrdinaryLuaLib='&:lua_lib=lua'
 conanOptionTargetPreWindows10='&:target_pre_windows10=True'
 if command -v python3 >/dev/null ; then
@@ -75,7 +77,11 @@ build_recipes() {
 		if [[ "${PACKAGE_PATH:-}" ]] ; then
 			packagePath="$PACKAGE_PATH"
 		elif [[ $package == qt ]] ; then
-			packagePath="$cciRecipePathQt/5.x.x"
+			if [[ $version == 6.* ]] ; then
+				packagePath="$cciRecipePathQt/6.x.x"
+			else
+				packagePath="$cciRecipePathQt/5.x.x"
+			fi
 		else
 			packagePath="recipes/$package/all"
 		fi
@@ -88,6 +94,21 @@ build_recipes() {
 			--core-conf core.sources.patch:extra_path="$scriptDir/conan_patches" \
 			--options "qt/*:android_sdk=${ANDROID_HOME:-}"
 	done
+}
+
+verify_patched_qt_recipe() {
+	local qtRef='qt/6.8.3'
+	local recipePath
+	local exportSourcesPath
+	recipePath=$(conan cache path "$qtRef")
+	exportSourcesPath=$(conan cache path "$qtRef" --folder=export_source)
+
+	grep -Fq 'patches/6.8.3-win7.diff' "$recipePath/conandata.yml" \
+		|| error "$qtRef cache recipe does not contain the Windows 7 patch metadata"
+	test -f "$exportSourcesPath/patches/6.8.3-win7.diff" \
+		|| error "$qtRef cache recipe does not contain the exported Windows 7 patch"
+	conan list "$qtRef:*" | grep -Fq "$qtRef" \
+		|| error "$qtRef patched package was not created"
 }
 
 # build steps
@@ -154,11 +175,28 @@ build_recipes_with_patches() {
 		recipes/minizip \
 		recipes/onnx \
 		recipes/onnxruntime \
+		$cciRecipePathQt \
+
+	# Do not let moving CCI master silently change the patched Qt recipe.
+	git fetch --no-tags origin "$cciQtRecipeRevision"
+	git -c advice.detachedHead=false checkout FETCH_HEAD
+
+	# The recipe validation is the only recipe change: keep C++17 intact, permit
+	# the v142 compiler used by the existing legacy-Windows profiles, and pass
+	# Qt's explicit opt-out for its newer MSVC policy check.
+	git apply --check "$scriptDir/conan_patches/qt6/recipe.diff"
+	git apply "$scriptDir/conan_patches/qt6/recipe.diff"
 
 	# versions must be synced with: conan_patches/<package>/conandata.yml
 	# if no custom patches are required for a package, it should be removed from here
-	build_recipes \
-		minizip/1.3.2 \
+	packages=(minizip/1.3.2)
+	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+		packages+=(qt/6.8.3)
+	fi
+	build_recipes "${packages[@]}"
+	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+		verify_patched_qt_recipe
+	fi
 
 	# not deleting the cloned repo because it's still used in the next step
 	popd
@@ -185,6 +223,10 @@ build_onnx_recipes_with_patches() {
 
 build_recipes_from_cci_pull_requests() {
 	print_current_step
+	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+		echo 'patched Qt 6.8.3 already built; skip the unrelated Qt 5 recipe'
+		return
+	fi
     # TODO: remove Qt5 when the following are merged:
 	# - https://github.com/conan-io/conan-center-index/pull/28251
 	# - https://github.com/conan-io/conan-center-index/pull/29299
