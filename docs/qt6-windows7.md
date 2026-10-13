@@ -18,7 +18,9 @@ ordinary Windows 10+ configuration keep the existing Qt 5 dependency.
 The compatibility files were diffed against clean Qt 6.8.4 and that logical
 diff was applied to clean Qt 6.8.3. The two 6.8.3-specific conflicts (thread
 naming and UI Automation notification dispatch) were adapted instead of
-copying whole 6.8.4 files.
+copying whole 6.8.4 files. VCMI's D3D11 QRhi completion is deliberately stored
+as a second patch, `6.8.3-win7-d3d11.diff`, applied after the imported backport;
+this keeps upstream-derived changes separate from the VCMI implementation.
 
 ## Toolchain and package shape
 
@@ -34,9 +36,25 @@ profiles unchanged. The build machine may be a newer Windows release.
 
 The patched Qt package is shared and includes Widgets, SVG, Qt Tools, and md4c.
 Qt Multimedia, WebEngine, and PDF are not in the current VCMI Conan graph and
-are not built. Direct3D 11/12 RHI is disabled only for the v142 legacy package;
-the backport documents those RHI paths as unsupported on Windows 7. The normal
-newer-Windows packages are unaffected.
+are not built. Direct3D 11 RHI remains enabled: on Windows 7/8 the backport
+falls back to `CreateDXGIFactory1` and a DXGI 1.1 discard-model HWND swapchain.
+That legacy path intentionally has no HDR, tearing, DirectComposition, or frame
+latency waitable object support. Direct3D 12 remains disabled only for the v142
+legacy package because its required runtime APIs are unavailable on Windows 7.
+The normal newer-Windows packages are unaffected.
+
+On Windows 7, the D3D11 backend requires SP1 and the Platform Update
+(`KB2670838`), because Qt 6.8 requires the Direct3D 11.1 runtime interfaces such
+as `ID3D11DeviceContext1`. If that update or a compatible graphics driver is
+missing, QRhi must fall back to another backend such as OpenGL.
+
+Qt 6 remains compiled with `_WIN32_WINNT=0x0601` and
+`NTDDI_VERSION=0x06010000`. Its private QRhi headers unconditionally store
+DirectComposition interface pointers, whose declarations the Windows SDK hides
+at that target level. A narrow private wrapper temporarily exposes only the
+`dcomp.h` declarations and then restores `NTDDI_VERSION` to Windows 7. The
+actual `DCompositionCreateDevice` entry point remains dynamically resolved and
+the legacy swapchain path does not invoke DirectComposition.
 
 ## Local build
 
@@ -68,7 +86,7 @@ use `--update`, so the locally exported recipe revision remains selected.
 The CCI pin and recipe modification are executed only for
 `target_pre_windows10=True`. Within that patched recipe, MSVC 19.29/v142 is
 accepted generally because it is the Windows 7 toolchain. The source backport
-and Direct3D feature changes remain restricted to exactly Qt 6.8.3. Other
+and Direct3D compatibility changes remain restricted to exactly Qt 6.8.3. Other
 platforms retain the unmodified CCI recipe and existing dependency flow.
 
 To inspect the resulting graph without the custom LuaJIT recipe, use:
@@ -106,7 +124,8 @@ must remain reported as unverified until those tests pass.
 ## Experimental branch decisions
 
 - Adapted: Qt 6.8.3 selection, the source compatibility patch, v142 recipe
-  validation, and legacy-only D3D feature handling.
+  validation, a DXGI 1.1 D3D11 swapchain fallback, and legacy-only D3D12
+  disabling.
 - Corrected: patch metadata lives under `conan_patches/qt`, because Conan's
   `core.sources.patch:extra_path` keys it by package name. The experimental
   `conan_patches/qt6` metadata was never selected.

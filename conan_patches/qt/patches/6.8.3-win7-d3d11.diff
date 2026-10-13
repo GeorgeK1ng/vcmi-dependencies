@@ -1,0 +1,292 @@
+diff --git a/src/gui/rhi/qrhid3d11.cpp b/src/gui/rhi/qrhid3d11.cpp
+index fad39946..4ddb568f 100644
+--- a/src/gui/rhi/qrhid3d11.cpp
++++ b/src/gui/rhi/qrhid3d11.cpp
+@@ -7,13 +7,12 @@
+ #include <QWindow>
+ #include <qmath.h>
+ #include <QtCore/qcryptographichash.h>
++#include <QtCore/qoperatingsystemversion.h>
+ #include <QtCore/private/qsystemerror_p.h>
+ #include "qrhid3dhelpers_p.h"
+ 
+ #include <cstdio>
+ 
+-#include <versionhelpers.h>
+-
+ QT_BEGIN_NAMESPACE
+ 
+ using namespace Qt::StringLiterals;
+@@ -192,19 +191,34 @@ static IDXGIFactory1 *createDXGIFactory2()
+ 
+     IDXGIFactory1 *result = nullptr;
+ 
+-    if (myCreateDXGIFactory2)
+-    {
++    if (myCreateDXGIFactory2) {
+         const HRESULT hr = myCreateDXGIFactory2(0, __uuidof(IDXGIFactory2), reinterpret_cast<void **>(&result));
+         if (FAILED(hr)) {
+             qWarning("CreateDXGIFactory2() failed to create DXGI factory: %s",
+                 qPrintable(QSystemError::windowsComString(hr)));
+             result = nullptr;
+         }
++    } else {
++        // Windows 7 only provides DXGI 1.1. IDXGIFactory1 is sufficient for
++        // adapter enumeration and the legacy HWND swapchain used below.
++        const HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), reinterpret_cast<void **>(&result));
++        if (FAILED(hr)) {
++            qWarning("CreateDXGIFactory1() failed to create DXGI factory: %s",
++                qPrintable(QSystemError::windowsComString(hr)));
++            result = nullptr;
++        }
+     }
+ 
+     return result;
+ }
+ 
++static bool supportsModernWindowsSwapchain()
++{
++    // Do not use VersionHelpers here: without a matching application manifest
++    // those helpers may report a newer Windows release as Windows 8.
++    return QOperatingSystemVersion::current() >= QOperatingSystemVersion::Windows10;
++}
++
+ bool QRhiD3D11::create(QRhi::Flags flags)
+ {
+     rhiFlags = flags;
+@@ -235,7 +249,9 @@ bool QRhiD3D11::create(QRhi::Flags flags)
+     // Support for flip model swapchains is required now (since we are
+     // targeting Windows 10+), but the option for using the old model is still
+     // there. (some features are not supported then, however)
+-    useLegacySwapchainModel = qEnvironmentVariableIntValue("QT_D3D_NO_FLIP");
++    // Windows 7 has no flip-model HWND swapchains or IDXGIFactory2.
++    useLegacySwapchainModel = !supportsModernWindowsSwapchain()
++            || qEnvironmentVariableIntValue("QT_D3D_NO_FLIP");
+ 
+     if (!useLegacySwapchainModel) {
+         if (qEnvironmentVariableIsSet("QT_D3D_MAX_FRAME_LATENCY"))
+@@ -5114,15 +5130,6 @@ static const DXGI_FORMAT DEFAULT_SRGB_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+ 
+ bool QD3D11SwapChain::createOrResize()
+ {
+-    if (IsWindows10OrGreater())
+-    {
+-        // continue
+-    }
+-    else
+-    {
+-        return createOrResizeWin7();
+-    }
+-
+     // Can be called multiple times due to window resizes - that is not the
+     // same as a simple destroy+create (as with other resources). Just need to
+     // resize the buffers then.
+@@ -5171,6 +5178,8 @@ bool QD3D11SwapChain::createOrResize()
+ 
+     swapInterval = m_flags.testFlag(QRhiSwapChain::NoVSync) ? 0 : 1;
+     swapChainFlags = 0;
++    const bool modernWindowsSwapchain = supportsModernWindowsSwapchain();
++    const UINT swapChainBufferCount = modernWindowsSwapchain ? UINT(BUFFER_COUNT) : 1;
+ 
+     // A non-flip swapchain can do Present(0) as expected without
+     // ALLOW_TEARING, and ALLOW_TEARING is not compatible with it at all so the
+@@ -5235,7 +5244,7 @@ bool QD3D11SwapChain::createOrResize()
+         desc.Format = colorFormat;
+         desc.SampleDesc.Count = 1;
+         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+-        desc.BufferCount = BUFFER_COUNT;
++        desc.BufferCount = swapChainBufferCount;
+         desc.Flags = swapChainFlags;
+         desc.Scaling = rhiD->useLegacySwapchainModel ? DXGI_SCALING_STRETCH : DXGI_SCALING_NONE;
+         desc.SwapEffect = rhiD->useLegacySwapchainModel ? DXGI_SWAP_EFFECT_DISCARD : DXGI_SWAP_EFFECT_FLIP_DISCARD;
+@@ -5253,13 +5262,29 @@ bool QD3D11SwapChain::createOrResize()
+             desc.Scaling = DXGI_SCALING_STRETCH;
+         }
+ 
+-        IDXGIFactory2 *fac = static_cast<IDXGIFactory2 *>(rhiD->dxgiFactory);
+-        IDXGISwapChain1 *sc1;
+-
+-        if (dcompVisual)
+-            hr = fac->CreateSwapChainForComposition(rhiD->dev, &desc, nullptr, &sc1);
+-        else
+-            hr = fac->CreateSwapChainForHwnd(rhiD->dev, hwnd, &desc, nullptr, nullptr, &sc1);
++        IDXGISwapChain1 *sc1 = nullptr;
++        if (modernWindowsSwapchain) {
++            IDXGIFactory2 *fac = static_cast<IDXGIFactory2 *>(rhiD->dxgiFactory);
++            if (dcompVisual)
++                hr = fac->CreateSwapChainForComposition(rhiD->dev, &desc, nullptr, &sc1);
++            else
++                hr = fac->CreateSwapChainForHwnd(rhiD->dev, hwnd, &desc, nullptr, nullptr, &sc1);
++        } else {
++            // IDXGIFactory2 and DXGI_SWAP_CHAIN_DESC1 are unavailable on
++            // Windows 7. Use the DXGI 1.1 discard-model HWND swapchain.
++            DXGI_SWAP_CHAIN_DESC legacyDesc = {};
++            legacyDesc.BufferDesc.Width = desc.Width;
++            legacyDesc.BufferDesc.Height = desc.Height;
++            legacyDesc.BufferDesc.Format = desc.Format;
++            legacyDesc.SampleDesc = desc.SampleDesc;
++            legacyDesc.BufferUsage = desc.BufferUsage;
++            legacyDesc.BufferCount = desc.BufferCount;
++            legacyDesc.OutputWindow = hwnd;
++            legacyDesc.Windowed = TRUE;
++            legacyDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
++            legacyDesc.Flags = 0;
++            hr = rhiD->dxgiFactory->CreateSwapChain(rhiD->dev, &legacyDesc, &swapChain);
++        }
+ 
+         // If failed and we tried a HDR format, then try with SDR. This
+         // matches other backends, such as Vulkan where if the format is
+@@ -5267,16 +5292,32 @@ bool QD3D11SwapChain::createOrResize()
+         if (FAILED(hr) && m_format != SDR) {
+             colorFormat = DEFAULT_FORMAT;
+             desc.Format = DEFAULT_FORMAT;
+-            if (dcompVisual)
+-                hr = fac->CreateSwapChainForComposition(rhiD->dev, &desc, nullptr, &sc1);
+-            else
+-                hr = fac->CreateSwapChainForHwnd(rhiD->dev, hwnd, &desc, nullptr, nullptr, &sc1);
++            if (modernWindowsSwapchain) {
++                IDXGIFactory2 *fac = static_cast<IDXGIFactory2 *>(rhiD->dxgiFactory);
++                if (dcompVisual)
++                    hr = fac->CreateSwapChainForComposition(rhiD->dev, &desc, nullptr, &sc1);
++                else
++                    hr = fac->CreateSwapChainForHwnd(rhiD->dev, hwnd, &desc, nullptr, nullptr, &sc1);
++            } else {
++                DXGI_SWAP_CHAIN_DESC legacyDesc = {};
++                legacyDesc.BufferDesc.Width = desc.Width;
++                legacyDesc.BufferDesc.Height = desc.Height;
++                legacyDesc.BufferDesc.Format = desc.Format;
++                legacyDesc.SampleDesc = desc.SampleDesc;
++                legacyDesc.BufferUsage = desc.BufferUsage;
++                legacyDesc.BufferCount = desc.BufferCount;
++                legacyDesc.OutputWindow = hwnd;
++                legacyDesc.Windowed = TRUE;
++                legacyDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
++                hr = rhiD->dxgiFactory->CreateSwapChain(rhiD->dev, &legacyDesc, &swapChain);
++            }
+         }
+ 
+         if (SUCCEEDED(hr)) {
+-            swapChain = sc1;
++            if (sc1)
++                swapChain = sc1;
+             IDXGISwapChain3 *sc3 = nullptr;
+-            if (SUCCEEDED(sc1->QueryInterface(__uuidof(IDXGISwapChain3), reinterpret_cast<void **>(&sc3)))) {
++            if (sc1 && SUCCEEDED(sc1->QueryInterface(__uuidof(IDXGISwapChain3), reinterpret_cast<void **>(&sc3)))) {
+                 if (m_format != SDR) {
+                     hr = sc3->SetColorSpace1(hdrColorSpace);
+                     if (FAILED(hr))
+@@ -5288,7 +5329,7 @@ bool QD3D11SwapChain::createOrResize()
+                     frameLatencyWaitableObject = sc3->GetFrameLatencyWaitableObject();
+                 }
+                 sc3->Release();
+-            } else {
++            } else if (sc1) {
+                 if (m_format != SDR)
+                     qWarning("IDXGISwapChain3 not available, HDR swapchain will not work as expected");
+                 if (useFrameLatencyWaitableObject) {
+@@ -5302,7 +5343,7 @@ bool QD3D11SwapChain::createOrResize()
+                     }
+                 }
+             }
+-            if (dcompVisual) {
++            if (dcompVisual && sc1) {
+                 hr = dcompVisual->SetContent(sc1);
+                 if (SUCCEEDED(hr)) {
+                     hr = dcompTarget->SetRoot(dcompVisual);
+@@ -5330,7 +5371,7 @@ bool QD3D11SwapChain::createOrResize()
+     } else {
+         releaseBuffers();
+         // flip model -> buffer count is the real buffer count, not 1 like with the legacy modes
+-        hr = swapChain->ResizeBuffers(UINT(BUFFER_COUNT), UINT(pixelSize.width()), UINT(pixelSize.height()),
++        hr = swapChain->ResizeBuffers(swapChainBufferCount, UINT(pixelSize.width()), UINT(pixelSize.height()),
+                                       colorFormat, swapChainFlags);
+         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+             qWarning("Device loss detected in ResizeBuffers()");
+@@ -5447,9 +5488,4 @@ bool QD3D11SwapChain::createOrResize()
+     return true;
+ }
+ 
+-bool QD3D11SwapChain::createOrResizeWin7()
+-{
+-    return false; // not implemented yet ;(
+-}
+-
+ QT_END_NAMESPACE
+diff --git a/src/gui/rhi/qrhid3d11_p.h b/src/gui/rhi/qrhid3d11_p.h
+index 7f232f1a..c3ce41a2 100644
+--- a/src/gui/rhi/qrhid3d11_p.h
++++ b/src/gui/rhi/qrhid3d11_p.h
+@@ -21,7 +21,7 @@
+ 
+ #include <d3d11_1.h>
+ #include <dxgi1_6.h>
+-#include <dcomp.h>
++#include "qrhidcomp_p.h"
+ 
+ QT_BEGIN_NAMESPACE
+ 
+@@ -596,7 +596,6 @@ struct QD3D11SwapChain : public QRhiSwapChain
+ 
+     QRhiRenderPassDescriptor *newCompatibleRenderPassDescriptor() override;
+     bool createOrResize() override;
+-    bool createOrResizeWin7();
+ 
+     void releaseBuffers();
+     bool newColorBuffer(const QSize &size, DXGI_FORMAT format, DXGI_SAMPLE_DESC sampleDesc,
+diff --git a/src/gui/rhi/qrhid3d12_p.h b/src/gui/rhi/qrhid3d12_p.h
+index 72c6c95f..677deea2 100644
+--- a/src/gui/rhi/qrhid3d12_p.h
++++ b/src/gui/rhi/qrhid3d12_p.h
+@@ -25,7 +25,7 @@
+ #include <d3d12.h>
+ #include <d3d12sdklayers.h>
+ #include <dxgi1_6.h>
+-#include <dcomp.h>
++#include "qrhidcomp_p.h"
+ 
+ #include "D3D12MemAlloc.h"
+ 
+diff --git a/src/gui/rhi/qrhid3dhelpers_p.h b/src/gui/rhi/qrhid3dhelpers_p.h
+index f31cdc8d..919e3105 100644
+--- a/src/gui/rhi/qrhid3dhelpers_p.h
++++ b/src/gui/rhi/qrhid3dhelpers_p.h
+@@ -20,7 +20,7 @@
+ #include <QtGui/qwindow.h>
+ 
+ #include <dxgi1_6.h>
+-#include <dcomp.h>
++#include "qrhidcomp_p.h"
+ #include <d3dcompiler.h>
+ 
+ #if __has_include(<dxcapi.h>)
+diff --git a/src/gui/rhi/qrhidcomp_p.h b/src/gui/rhi/qrhidcomp_p.h
+new file mode 100644
+index 00000000..9196f00b
+--- /dev/null
++++ b/src/gui/rhi/qrhidcomp_p.h
+@@ -0,0 +1,25 @@
++// Copyright (C) 2026 VCMI Project
++// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
++
++#ifndef QRHIDCOMP_P_H
++#define QRHIDCOMP_P_H
++
++// Qt's D3D RHI stores DirectComposition COM interface pointers even when the
++// runtime feature is unavailable. The Windows SDK hides those declarations
++// when targeting Windows 7. Temporarily expose declarations from dcomp.h while
++// preserving the Win7 target macros for every actual source file.
++#if defined(NTDDI_VERSION) && NTDDI_VERSION < 0x06020000
++#  pragma push_macro("NTDDI_VERSION")
++#  undef NTDDI_VERSION
++#  define NTDDI_VERSION 0x06020000
++#  define QT_RHI_RESTORE_NTDDI_VERSION
++#endif
++
++#include <dcomp.h>
++
++#ifdef QT_RHI_RESTORE_NTDDI_VERSION
++#  undef QT_RHI_RESTORE_NTDDI_VERSION
++#  pragma pop_macro("NTDDI_VERSION")
++#endif
++
++#endif // QRHIDCOMP_P_H

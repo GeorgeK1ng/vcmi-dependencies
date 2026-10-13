@@ -14,7 +14,7 @@ index 2360ea166..b711fb79c 100644
  
          if self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "15":
              raise ConanInvalidConfiguration("apple-clang >= 14 is required by qt >= 6.8.3")
-@@ -489,5 +492,17 @@ class QtConan(ConanFile):
+@@ -489,5 +492,15 @@ class QtConan(ConanFile):
          tc.variables["QT_BUILD_TESTS"] = "OFF"
          tc.variables["QT_BUILD_EXAMPLES"] = "OFF"
  
@@ -24,10 +24,8 @@ index 2360ea166..b711fb79c 100644
 +            tc.variables["QT_NO_MSVC_MIN_VERSION_CHECK"] = "ON"
 +
 +        if self.version == "6.8.3" and is_msvc(self) and Version(self.settings.compiler.version) == "192":
-+            # Only the Qt 6.8.3 Windows 7 backport needs the Direct3D RHI disabled.
-+            # Keep other Qt versions and toolchains on their upstream feature path.
-+            # crystalidea documents the Direct3D RHI as not ported to Windows 7.
-+            tc.variables["FEATURE_d3d11"] = "OFF"
++            # D3D11 has a DXGI 1.1 swapchain fallback in the source backport.
++            # D3D12 still depends on APIs that are unavailable on Windows 7.
 +            tc.variables["FEATURE_d3d12"] = "OFF"
 +
          if is_msvc(self) and "MT" in msvc_runtime_flag(self):
