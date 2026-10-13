@@ -1,0 +1,2 @@
+# Patches must stay LF-only: git apply treats CR as part of context lines.
+*.diff text eol=lf whitespace=-blank-at-eol
