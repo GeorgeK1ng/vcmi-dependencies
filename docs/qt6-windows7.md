@@ -25,7 +25,12 @@ copying whole 6.8.4 files.
 The existing `msvc-x86` and `msvc-x64` profiles target Windows 7 SP1 headers
 (`_WIN32_WINNT=0x0601`) and MSVC 19.29/v142. They use C++20 for VCMI (Qt itself
 requires at least C++17), the dynamic MSVC runtime, and Release packages. The
-build machine may be a newer Windows release.
+generated platform-tools profile sets only the required C++17 minimum for the
+native build context, because `qttools` makes Qt a build requirement as well as
+a host requirement. This does not lower the independently configured C++20
+host profile. The override is emitted only with `target_pre_windows10=True`;
+Windows ARM64, Linux, macOS, iOS, and Android retain their existing build
+profiles unchanged. The build machine may be a newer Windows release.
 
 The patched Qt package is shared and includes Widgets, SVG, Qt Tools, and md4c.
 Qt Multimedia, WebEngine, and PDF are not in the current VCMI Conan graph and
@@ -60,6 +65,11 @@ BUILD_ACTION=build_normal_recipes ./build.sh windows-x64
 CCI, creates the Qt package locally, and then verifies both the merged patch
 metadata and exported patch file in the Conan cache. The later install does not
 use `--update`, so the locally exported recipe revision remains selected.
+The CCI pin and recipe modification are executed only for
+`target_pre_windows10=True`. Within that patched recipe, MSVC 19.29/v142 is
+accepted generally because it is the Windows 7 toolchain. The source backport
+and Direct3D feature changes remain restricted to exactly Qt 6.8.3. Other
+platforms retain the unmodified CCI recipe and existing dependency flow.
 
 To inspect the resulting graph without the custom LuaJIT recipe, use:
 

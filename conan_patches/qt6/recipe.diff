@@ -1,28 +1,32 @@
 diff --git a/recipes/qt/6.x.x/conanfile.py b/recipes/qt/6.x.x/conanfile.py
-index 2360ea166..1cfa7ad9b 100644
+index 2360ea166..b711fb79c 100644
 --- a/recipes/qt/6.x.x/conanfile.py
 +++ b/recipes/qt/6.x.x/conanfile.py
-@@ -286,8 +286,8 @@ class QtConan(ConanFile):
-             # note: assuming that by now, any xcode 13 is updated to the latest 13.4.1
+@@ -287,7 +287,10 @@ class QtConan(ConanFile):
              raise ConanInvalidConfiguration("apple-clang >= 13.1 is required by qt >= 6.6.1 cf QTBUG-119490")
  
--        if self.settings.compiler == "msvc" and Version(self.settings.compiler.version) < "193":
+         if self.settings.compiler == "msvc" and Version(self.settings.compiler.version) < "193":
 -            raise ConanInvalidConfiguration("Visual Studio 2022 (MSVC 1930 or newer) is required by qt >= 6.8.3")
-+        if self.settings.compiler == "msvc" and Version(self.settings.compiler.version) < "192":
-+            raise ConanInvalidConfiguration("MSVC 1929 or newer is required by the VCMI Qt 6.8.3 backport")
++            # VCMI uses the VS 2019 v142 toolchain (MSVC 19.29) for Windows 7 builds.
++            # Keep rejecting older compilers while allowing v142 for patched recipes.
++            if Version(self.settings.compiler.version) < "192":
++                raise ConanInvalidConfiguration("MSVC 1920 or newer is required by the VCMI legacy-Windows Qt recipe")
  
          if self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "15":
              raise ConanInvalidConfiguration("apple-clang >= 14 is required by qt >= 6.8.3")
-@@ -489,5 +489,14 @@ class QtConan(ConanFile):
+@@ -489,5 +492,17 @@ class QtConan(ConanFile):
          tc.variables["QT_BUILD_TESTS"] = "OFF"
          tc.variables["QT_BUILD_EXAMPLES"] = "OFF"
  
-+        # VCMI's pre-Windows-10 profiles deliberately use the v142 toolset. Qt 6.8's
-+        # code compiles as C++17 with 19.29; bypass only Qt's newer policy check.
-+        tc.variables["QT_NO_MSVC_MIN_VERSION_CHECK"] = "ON"
-+        if is_msvc(self) and Version(self.settings.compiler.version) < "193":
++        if is_msvc(self) and Version(self.settings.compiler.version) == "192":
++            # Qt's build system has the same VS 2022 guard as this recipe. VCMI
++            # intentionally uses VS 2019 v142 for its Windows 7 package builds.
++            tc.variables["QT_NO_MSVC_MIN_VERSION_CHECK"] = "ON"
++
++        if self.version == "6.8.3" and is_msvc(self) and Version(self.settings.compiler.version) == "192":
++            # Only the Qt 6.8.3 Windows 7 backport needs the Direct3D RHI disabled.
++            # Keep other Qt versions and toolchains on their upstream feature path.
 +            # crystalidea documents the Direct3D RHI as not ported to Windows 7.
-+            # Scope the fallback to VCMI's legacy v142 profile.
 +            tc.variables["FEATURE_d3d11"] = "OFF"
 +            tc.variables["FEATURE_d3d12"] = "OFF"
 +

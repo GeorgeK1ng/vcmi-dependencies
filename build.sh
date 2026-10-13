@@ -124,7 +124,18 @@ prepare() {
 	cmake="cmake/$(cmake --version | grep -E --max-count=1 --only-matching "$digitRE+\\.$digitRE+\\.$digitRE+")"
 	ninja="ninja/$(ninja --version)"
 
-	platformTools="
+	buildContextSettings=""
+	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+		# qttools makes Qt a native build requirement. Conan's auto-detected
+		# build profile defaults to C++14, while Qt 6 requires at least C++17.
+		# Keep this override exclusive to legacy Windows builds; every other
+		# platform retains its existing auto-detected build-profile standard.
+		buildContextSettings="
+[settings]
+compiler.cppstd=17"
+	fi
+
+	platformTools="$buildContextSettings
 [platform_tool_requires]
 $cmake
 $ninja
@@ -177,24 +188,19 @@ build_recipes_with_patches() {
 		recipes/onnxruntime \
 		$cciRecipePathQt \
 
-	# Do not let moving CCI master silently change the patched Qt recipe.
-	git fetch --no-tags origin "$cciQtRecipeRevision"
-	git -c advice.detachedHead=false checkout FETCH_HEAD
-
-	# The recipe validation is the only recipe change: keep C++17 intact, permit
-	# the v142 compiler used by the existing legacy-Windows profiles, and pass
-	# Qt's explicit opt-out for its newer MSVC policy check.
-	git apply --check "$scriptDir/conan_patches/qt6/recipe.diff"
-	git apply "$scriptDir/conan_patches/qt6/recipe.diff"
-
 	# versions must be synced with: conan_patches/<package>/conandata.yml
 	# if no custom patches are required for a package, it should be removed from here
-	packages=(minizip/1.3.2)
+	build_recipes minizip/1.3.2
+
 	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
-		packages+=(qt/6.8.3)
-	fi
-	build_recipes "${packages[@]}"
-	if [[ "${CONAN_OPTIONS:-}" == *"$conanOptionTargetPreWindows10"* ]] ; then
+		# Pin and patch the Qt recipe only for the explicit legacy-Windows build.
+		# Other platforms, normal Windows builds, and other Qt versions never use
+		# this checkout or recipe modification.
+		git fetch --no-tags origin "$cciQtRecipeRevision"
+		git -c advice.detachedHead=false checkout FETCH_HEAD
+		git apply --check "$scriptDir/conan_patches/qt6/recipe.diff"
+		git apply "$scriptDir/conan_patches/qt6/recipe.diff"
+		build_recipes qt/6.8.3
 		verify_patched_qt_recipe
 	fi
 
