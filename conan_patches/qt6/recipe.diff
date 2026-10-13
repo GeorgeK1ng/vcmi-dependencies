@@ -14,7 +14,7 @@ index 2360ea166..b711fb79c 100644
  
          if self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "15":
              raise ConanInvalidConfiguration("apple-clang >= 14 is required by qt >= 6.8.3")
-@@ -489,5 +492,15 @@ class QtConan(ConanFile):
+@@ -489,5 +492,19 @@ class QtConan(ConanFile):
          tc.variables["QT_BUILD_TESTS"] = "OFF"
          tc.variables["QT_BUILD_EXAMPLES"] = "OFF"
  
@@ -22,6 +22,10 @@ index 2360ea166..b711fb79c 100644
 +            # Qt's build system has the same VS 2022 guard as this recipe. VCMI
 +            # intentionally uses VS 2019 v142 for its Windows 7 package builds.
 +            tc.variables["QT_NO_MSVC_MIN_VERSION_CHECK"] = "ON"
++            if self.version == "6.11.1":
++                # Qt 6.11 otherwise replaces an explicit Windows 7 target with
++                # Windows 10 definitions during its platform configuration.
++                tc.variables["QT_VCMI_LEGACY_WINDOWS"] = "ON"
 +
 +        if self.version in ("6.8.3", "6.11.1") and is_msvc(self) and Version(self.settings.compiler.version) == "192":
 +            # D3D11 has a DXGI 1.1 swapchain fallback in the source backport.

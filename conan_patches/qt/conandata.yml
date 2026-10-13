@@ -5,6 +5,11 @@ patches:
       "patch_description": "Backport Windows 7, 8 and 8.1 compatibility, including the D3D11 legacy swapchain fallback"
       "patch_type": "portability"
       "patch_source": "https://github.com/forkgram/qt6windows7/tree/2127fa0668b67fada62b7b4198ba979eaa638b6c"
+    - "base_path": "qtbase"
+      "patch_file": "patches/6.11.1-win7-build.diff"
+      "patch_description": "Allow MSVC 19.29 v142 and preserve the Windows 7 SDK target during Qt configuration"
+      "patch_type": "portability"
+      "patch_source": "https://github.com/vcmi/vcmi-dependencies"
   "6.8.3":
     - "base_path": "qtbase"
       "patch_file": "patches/6.8.3-win7.diff"

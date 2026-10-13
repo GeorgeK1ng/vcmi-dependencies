@@ -1,0 +1,32 @@
+diff --git a/cmake/QtBaseConfigureTests.cmake b/cmake/QtBaseConfigureTests.cmake
+index 43f5d387..04ecec72 100644
+--- a/cmake/QtBaseConfigureTests.cmake
++++ b/cmake/QtBaseConfigureTests.cmake
+@@ -244,7 +244,9 @@ function(qt_internal_ensure_latest_win_nt_api)
+         #endif
+         int main() { return 0; }
+     ]=] HAVE_WIN10_WIN32_WINNT)
+-    if(NOT HAVE_WIN10_WIN32_WINNT)
++    if(NOT HAVE_WIN10_WIN32_WINNT AND NOT QT_VCMI_LEGACY_WINDOWS)
++        # Upstream Qt 6.11 raises an explicitly lower SDK target to Windows 10.
++        # Preserve VCMI's intentional Windows 7 target for its patched package.
+         list(APPEND QT_PLATFORM_DEFINITIONS _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+         set(QT_PLATFORM_DEFINITIONS ${QT_PLATFORM_DEFINITIONS}
+             CACHE STRING "Qt platform specific pre-processor defines" FORCE)
+diff --git a/src/corelib/global/qcompilerdetection.h b/src/corelib/global/qcompilerdetection.h
+index 3793139b..178de607 100644
+--- a/src/corelib/global/qcompilerdetection.h
++++ b/src/corelib/global/qcompilerdetection.h
+@@ -1335,8 +1335,10 @@
+ #endif // __cplusplus
+ 
+ #if defined(__cplusplus) && defined(Q_CC_MSVC) && !defined(Q_CC_CLANG)
+-#  if Q_CC_MSVC < 1930
+-#    error "Qt requires at least Visual Studio 2022 (MSVC version 19.30 or newer). Please upgrade."
++#  if Q_CC_MSVC < 1929
++// VCMI builds its Windows 7 packages with the last VS 2019 v142 compiler.
++// Keep rejecting older toolsets while allowing that exact supported baseline.
++#    error "VCMI's legacy-Windows Qt build requires MSVC version 19.29 or newer."
+ #  endif
+ 
+ // On MSVC we require /permissive- set by user code. Check that we are

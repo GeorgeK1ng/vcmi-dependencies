@@ -43,6 +43,10 @@ applied after the imported backport so upstream-derived changes stay untouched.
 For 6.11.1, Forkgram already includes the SDK declarations and the D3D11
 factory/swapchain fallback, so its 77-file overlay is stored as one logical
 diff against the clean official Qt 6.11.1 tag instead of duplicating fixes.
+The separate `6.11.1-win7-build.diff` lowers only Qt 6.11.1's compile-time
+compiler guard from MSVC 19.30 to the required MSVC 19.29 v142 minimum and
+prevents Qt 6.11 from replacing the explicit Windows 7 SDK target with Windows
+10 definitions. The original Forkgram overlay remains untouched.
 
 ## Toolchain and package shape
 
