@@ -19,8 +19,10 @@ The compatibility files were diffed against clean Qt 6.8.4 and that logical
 diff was applied to clean Qt 6.8.3. The two 6.8.3-specific conflicts (thread
 naming and UI Automation notification dispatch) were adapted instead of
 copying whole 6.8.4 files. VCMI's D3D11 QRhi completion is deliberately stored
-as a second patch, `6.8.3-win7-d3d11.diff`, applied after the imported backport;
-this keeps upstream-derived changes separate from the VCMI implementation.
+separately in `6.8.3-win7-d3d11.diff`. A second VCMI patch,
+`6.8.3-win7-sdk.diff`, contains compile-time fixes for inconsistencies between
+Qt's Windows 10 SDK declarations and the Windows 7 NTDDI target. Both are
+applied after the imported backport so upstream-derived changes stay untouched.
 
 ## Toolchain and package shape
 

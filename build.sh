@@ -107,10 +107,14 @@ verify_patched_qt_recipe() {
 		|| error "$qtRef cache recipe does not contain the Windows 7 patch metadata"
 	grep -Fq 'patches/6.8.3-win7-d3d11.diff' "$recipePath/conandata.yml" \
 		|| error "$qtRef cache recipe does not contain the D3D11 fallback patch metadata"
+	grep -Fq 'patches/6.8.3-win7-sdk.diff' "$recipePath/conandata.yml" \
+		|| error "$qtRef cache recipe does not contain the Win7 SDK fix patch metadata"
 	test -f "$exportSourcesPath/patches/6.8.3-win7.diff" \
 		|| error "$qtRef cache recipe does not contain the exported Windows 7 patch"
 	test -f "$exportSourcesPath/patches/6.8.3-win7-d3d11.diff" \
 		|| error "$qtRef cache recipe does not contain the exported D3D11 fallback patch"
+	test -f "$exportSourcesPath/patches/6.8.3-win7-sdk.diff" \
+		|| error "$qtRef cache recipe does not contain the exported Win7 SDK fix patch"
 	conan list "$qtRef:*" | grep -Fq "$qtRef" \
 		|| error "$qtRef patched package was not created"
 }

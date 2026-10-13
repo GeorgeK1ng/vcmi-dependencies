@@ -1,0 +1,23 @@
+diff --git a/src/plugins/platforms/windows/qwin10helpers.cpp b/src/plugins/platforms/windows/qwin10helpers.cpp
+index ca144e9f..82bf0348 100644
+--- a/src/plugins/platforms/windows/qwin10helpers.cpp
++++ b/src/plugins/platforms/windows/qwin10helpers.cpp
+@@ -10,7 +10,10 @@
+ #if defined(Q_CC_MINGW) || defined(Q_CC_CLANG)
+ #  define HAS_UI_VIEW_SETTINGS_INTEROP
+ // Present from MSVC2015 + SDK 10 onwards
+-#elif (!defined(Q_CC_MSVC) || _MSC_VER >= 1900) && WINVER >= 0x0A00
++#elif (!defined(Q_CC_MSVC) || _MSC_VER >= 1900) && WINVER >= 0x0A00 \
++    && (!defined(NTDDI_VERSION) || NTDDI_VERSION >= 0x0A000000)
++// uiviewsettingsinterop.h only defines the complete interface at a Windows 10
++// NTDDI level. With the Windows 7 target, use the local declaration below.
+ #  define HAS_UI_VIEW_SETTINGS_INTEROP
+ #  define HAS_UI_VIEW_SETTINGS
+ #endif
+@@ -127,4 +130,4 @@ bool qt_windowsIsTabletMode(HWND hwnd)
+     return false;
+ }
+ 
+-QT_END_NAMESPACE
+\ No newline at end of file
++QT_END_NAMESPACE
