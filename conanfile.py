@@ -91,6 +91,20 @@ class VCMI(ConanFile):
             # Qt Quick lives in qtdeclarative. Enable it only for the two Qt 6
             # Windows packages whose D3D11 QRhi path is patched for Windows 7.
             self.options["qt"].qtdeclarative = True
+            # Keep the QtTools build-time tools used by VCMI (Linguist, uic,
+            # UiTools and deployment tools), but omit standalone developer
+            # applications. Assistant alone pulls in and builds litehtml; all
+            # of these applications substantially increase the temporary Qt
+            # build/install footprint without being part of VCMI runtime.
+            self.options["qt"].disabled_features = " ".join([
+                "assistant",
+                "designer",
+                "distancefieldgenerator",
+                "pixeltool",
+                "qtattributionsscanner",
+                "qtdiag",
+                "qtplugininfo",
+            ])
         if self.settings.os == "Android":
             # TODO: in Qt 6 this option doesn't exist
             self.options["qt"].qtandroidextras = True

@@ -83,6 +83,14 @@ at that target level. A narrow private wrapper temporarily exposes only the
 actual `DCompositionCreateDevice` entry point remains dynamically resolved and
 the legacy swapchain path does not invoke DirectComposition.
 
+To stay within the Windows CI disk limit, Qt 6 omits standalone QtTools
+developer applications that VCMI neither builds with nor ships: Assistant,
+Designer, Distance Field Generator, PixelTool, Attribution Scanner, QtDiag,
+and QtPluginInfo. Linguist tools, `uic`, UiTools, deployment tools, Qt Quick,
+and the QML compiler/runtime remain enabled. CI places the Conan home on the
+runner temporary volume and removes Qt source/build trees immediately after
+the Qt package is created; package binaries remain available and cacheable.
+
 ## Local build
 
 Install Visual Studio with the v142 x86/x64 toolset, a current Windows SDK,

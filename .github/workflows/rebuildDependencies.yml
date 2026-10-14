@@ -95,6 +95,14 @@ jobs:
     - name: Checkout current
       uses: actions/checkout@v6
 
+    - name: Move Conan storage to the Windows temporary volume
+      if: ${{ startsWith(matrix.platform, 'windows') }}
+      run: |
+        # Qt source, build and package trees coexist during `conan create`.
+        # Keep them off the smaller Windows user drive. Other operating systems
+        # retain their existing default Conan home.
+        echo "CONAN_HOME=${RUNNER_TEMP//\\//}/conan2" >> "$GITHUB_ENV"
+
     - name: Define common variables
       run: |
         echo BUILD_PLATFORM="${{ matrix.platform }}" >> "$GITHUB_ENV"
@@ -146,7 +154,7 @@ jobs:
       id: conan-cache-restore
       uses: actions/cache/restore@v4
       with:
-        path: ~/.conan2/p
+        path: ${{ startsWith(matrix.platform, 'windows') && format('{0}/conan2/p', runner.temp) || '~/.conan2/p' }}
         # Windows artifact names include the Qt variant, preventing packages
         # built with different Qt recipes from sharing the same cache key.
         key: ${{ runner.os }}-conan2-${{ matrix.artifact }}-${{ hashFiles('conanfile.py', 'conan_profiles/**', 'conan_patches/**', '.github/workflows/rebuildDependencies.yml') }}
@@ -188,9 +196,26 @@ jobs:
       run: |
         BUILD_ACTION=install_system_libs ./build.sh
 
+    - name: Report disk space before Qt build
+      if: ${{ startsWith(matrix.qt_variant, 'qt6-') }}
+      shell: pwsh
+      run: Get-PSDrive -PSProvider FileSystem | Format-Table Name, Used, Free, Root -AutoSize
+
     - name: Build recipes with our patches
       run: |
         BUILD_ACTION=build_recipes_with_patches ./build.sh
+
+    - name: Remove Qt source and build trees
+      if: ${{ startsWith(matrix.qt_variant, 'qt6-') }}
+      run: |
+        # The package is retained; only the large temporary source/build/download
+        # folders are removed before ONNX and the remaining dependencies build.
+        conan cache clean "qt/*" --source --build --download
+
+    - name: Report disk space after Qt cleanup
+      if: ${{ startsWith(matrix.qt_variant, 'qt6-') }}
+      shell: pwsh
+      run: Get-PSDrive -PSProvider FileSystem | Format-Table Name, Used, Free, Root -AutoSize
 
     - name: Build ONNX with our patches
       run: |
@@ -230,7 +255,7 @@ jobs:
       if: ${{ !cancelled() && steps.conan-cache-restore.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@v4
       with:
-        path: ~/.conan2/p
+        path: ${{ startsWith(matrix.platform, 'windows') && format('{0}/conan2/p', runner.temp) || '~/.conan2/p' }}
         key: ${{ steps.conan-cache-restore.outputs.cache-primary-key }}
 
     - name: Upload binaries list
