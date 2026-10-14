@@ -215,3 +215,37 @@ index 31e82f2..8aad10b 100644
  //
  //  W A R N I N G
  //  -------------
+diff --git a/src/plugins/platforms/windows/qtwindowsglobal.h b/src/plugins/platforms/windows/qtwindowsglobal.h
+index aad75e3..5ef7df4 100644
+--- a/src/plugins/platforms/windows/qtwindowsglobal.h
++++ b/src/plugins/platforms/windows/qtwindowsglobal.h
+@@ -33,6 +33,10 @@
+ #  define WM_DPICHANGED 0x02E0
+ #endif
+ 
++#ifndef WM_DPICHANGED_AFTERPARENT
++#  define WM_DPICHANGED_AFTERPARENT 0x02E3
++#endif
++
+ #ifndef WM_GETDPISCALEDSIZE
+ #  define WM_GETDPISCALEDSIZE 0x02E4
+ #endif
+@@ -61,6 +65,18 @@
+ #  define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((HANDLE)-5)
+ #endif
+ 
++// The Windows SDK hides this Windows 8 type for a Windows 7 target. Qt only
++// passes it to user32 entry points that are resolved dynamically at runtime.
++#if defined(WINVER) && WINVER < 0x0602
++typedef enum ORIENTATION_PREFERENCE {
++    ORIENTATION_PREFERENCE_NONE = 0x0,
++    ORIENTATION_PREFERENCE_LANDSCAPE = 0x1,
++    ORIENTATION_PREFERENCE_PORTRAIT = 0x2,
++    ORIENTATION_PREFERENCE_LANDSCAPE_FLIPPED = 0x4,
++    ORIENTATION_PREFERENCE_PORTRAIT_FLIPPED = 0x8
++} ORIENTATION_PREFERENCE;
++#endif
++
+ QT_BEGIN_NAMESPACE
+ 
+ namespace QtWindows
