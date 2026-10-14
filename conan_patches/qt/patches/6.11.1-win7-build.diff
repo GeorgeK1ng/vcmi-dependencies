@@ -30,3 +30,29 @@ index 3793139b..178de607 100644
  #  endif
  
  // On MSVC we require /permissive- set by user code. Check that we are
+diff --git a/src/corelib/kernel/qtmochelpers.h b/src/corelib/kernel/qtmochelpers.h
+index 11c9d662..5c977401 100644
+--- a/src/corelib/kernel/qtmochelpers.h
++++ b/src/corelib/kernel/qtmochelpers.h
+@@ -250,8 +250,11 @@ struct UintData
+     copyTo(Result &result, size_t dataoffset, uint &metatypeoffset) const
+     {
+         uint *ptr = result.staticData.data;
++        // MSVC 19.29 loses a referenced function parameter when instantiating
++        // this generic constexpr lambda. Capture a local pointer instead.
++        Result *resultPtr = &result;
+         size_t payloadoffset = dataoffset + headerSize();
+-        data.forEach([&](const auto &input) {
++        data.forEach([&, resultPtr](const auto &input) {
+             // copy the uint data
+             q20::copy_n(input.header, input.headerSize(), ptr + dataoffset);
+             q20::copy_n(input.payload, input.payloadSize(), ptr + payloadoffset);
+@@ -258,7 +261,7 @@ struct UintData
+             input.adjustOffsets(ptr, uint(dataoffset), uint(payloadoffset), metatypeoffset);
+ 
+             // copy the metatypes
+-            decltype(input.metaTypes())::template copyTo<Unique>(result, metatypeoffset);
++            decltype(input.metaTypes())::template copyTo<Unique>(*resultPtr, metatypeoffset);
+ 
+             dataoffset += input.headerSize();
+             payloadoffset += input.payloadSize();
