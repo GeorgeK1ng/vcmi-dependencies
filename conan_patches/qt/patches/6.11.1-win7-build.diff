@@ -80,3 +80,65 @@ index 38ba2b9d..4d463dac 100644
 +                &infoEx, sizeof(infoEx))) {
          result = QByteArray::number(infoEx.VolumeSerialNumber, 16);
          result += ':';
+diff --git a/src/gui/rhi/qrhid3d11_p.h b/src/gui/rhi/qrhid3d11_p.h
+index 63b89f25..85981731 100644
+--- a/src/gui/rhi/qrhid3d11_p.h
++++ b/src/gui/rhi/qrhid3d11_p.h
+@@ -21,5 +21,5 @@
+ 
+ #include <d3d11_1.h>
+ #include <dxgi1_6.h>
+-#include <dcomp.h>
++#include "qrhidcomp_p.h"
+ 
+diff --git a/src/gui/rhi/qrhid3d12_p.h b/src/gui/rhi/qrhid3d12_p.h
+index 0f865eac..e0a269e8 100644
+--- a/src/gui/rhi/qrhid3d12_p.h
++++ b/src/gui/rhi/qrhid3d12_p.h
+@@ -25,5 +25,5 @@
+ #include <d3d12.h>
+ #include <d3d12sdklayers.h>
+ #include <dxgi1_6.h>
+-#include <dcomp.h>
++#include "qrhidcomp_p.h"
+ 
+diff --git a/src/gui/rhi/qrhid3dhelpers_p.h b/src/gui/rhi/qrhid3dhelpers_p.h
+index dbca53e5..fe13f156 100644
+--- a/src/gui/rhi/qrhid3dhelpers_p.h
++++ b/src/gui/rhi/qrhid3dhelpers_p.h
+@@ -20,3 +20,3 @@
+ #include <dxgi1_6.h>
+-#include <dcomp.h>
++#include "qrhidcomp_p.h"
+ #include <d3dcompiler.h>
+diff --git a/src/gui/rhi/qrhidcomp_p.h b/src/gui/rhi/qrhidcomp_p.h
+new file mode 100644
+index 00000000..9196f00b
+--- /dev/null
++++ b/src/gui/rhi/qrhidcomp_p.h
+@@ -0,0 +1,25 @@
++// Copyright (C) 2026 VCMI Project
++// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
++
++#ifndef QRHIDCOMP_P_H
++#define QRHIDCOMP_P_H
++
++// Qt's D3D RHI stores DirectComposition COM interface pointers even when the
++// runtime feature is unavailable. The Windows SDK hides those declarations
++// when targeting Windows 7. Temporarily expose declarations from dcomp.h while
++// preserving the Win7 target macros for every actual source file.
++#if defined(NTDDI_VERSION) && NTDDI_VERSION < 0x06020000
++#  pragma push_macro("NTDDI_VERSION")
++#  undef NTDDI_VERSION
++#  define NTDDI_VERSION 0x06020000
++#  define QT_RHI_RESTORE_NTDDI_VERSION
++#endif
++
++#include <dcomp.h>
++
++#ifdef QT_RHI_RESTORE_NTDDI_VERSION
++#  undef QT_RHI_RESTORE_NTDDI_VERSION
++#  pragma pop_macro("NTDDI_VERSION")
++#endif
++
++#endif // QRHIDCOMP_P_H
