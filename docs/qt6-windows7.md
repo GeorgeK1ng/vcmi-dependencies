@@ -1,9 +1,12 @@
 # Qt 6 for Windows 7, 8, and 8.1
 
 The Windows x86 and x64 CI matrix builds three independent dependency archives:
-Qt 5, source-patched Qt 6.8.3, and source-patched Qt 6.11.1. The VCMI option
+Qt 5, source-patched Qt 6.8.3, and source-patched Qt 6.11.1. Windows ARM64 also
+builds all three versions, but uses the upstream Qt 6 sources because its
+Windows 10 target does not need the legacy compatibility backports. The VCMI
+option
 `qt_version` selects the package while `target_pre_windows10=True` keeps the
-shared Windows 7 dependency constraints. Windows ARM64 and all non-Windows
+shared Windows 7 dependency constraints on x86 and x64. All non-Windows
 platforms retain their previous Qt 5 dependency.
 
 ## Pinned inputs
@@ -58,12 +61,14 @@ requires at least C++17), the dynamic MSVC runtime, and Release packages. The
 generated platform-tools profile sets only the required C++17 minimum for the
 native build context, because `qttools` makes Qt a build requirement as well as
 a host requirement. This does not lower the independently configured C++20
-host profile. Windows ARM64, Linux, macOS, iOS, and Android retain their
-existing build profiles unchanged. The C++17 override is emitted only for a
-selected Qt 6 variant. The build machine may be a newer Windows release.
+host profile. Windows ARM64 retains its Windows 10 profile and does not receive
+the Win7 source patches or `target_pre_windows10` option. Linux, macOS, iOS,
+and Android retain their existing build profiles unchanged. The C++17 override
+is emitted only for a selected Qt 6 variant. The build machine may be a newer
+Windows release.
 
-The patched Qt package is shared and includes Widgets, SVG, Qt Tools, md4c,
-and `qtdeclarative` (Qt Quick).
+The Qt 6 packages are shared and include Widgets, SVG, Qt Tools, md4c, and
+`qtdeclarative` (Qt Quick).
 Qt Multimedia, WebEngine, and PDF are not in the current VCMI Conan graph and
 are not built. Direct3D 11 RHI remains enabled: on Windows 7/8 the backport
 falls back to `CreateDXGIFactory1` and a DXGI 1.1 discard-model HWND swapchain.
@@ -105,6 +110,8 @@ export QT_VARIANT=qt6-8-3   # qt5, qt6-8-3, or qt6-11-1
 ./build.sh windows-x64
 # or
 ./build.sh windows-x86
+# or, with the native Windows 10 ARM64 profile and upstream Qt sources
+./build.sh windows-arm64
 ```
 
 For stepwise diagnosis, preserve the variables printed by `prepare` and run:

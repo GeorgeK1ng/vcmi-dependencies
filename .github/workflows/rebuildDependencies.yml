@@ -77,6 +77,17 @@ jobs:
 
           - platform: windows-arm64
             artifact: windows-arm64
+            qt_variant: qt5
+            os: windows-11-vs2026-arm
+
+          - platform: windows-arm64
+            artifact: windows-arm64-qt6-8-3
+            qt_variant: qt6-8-3
+            os: windows-11-vs2026-arm
+
+          - platform: windows-arm64
+            artifact: windows-arm64-qt6-11-1
+            qt_variant: qt6-11-1
             os: windows-11-vs2026-arm
 
           - platform: linux-x64

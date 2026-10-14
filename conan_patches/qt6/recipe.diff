@@ -14,7 +14,7 @@ index 2360ea166..b711fb79c 100644
  
          if self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "15":
              raise ConanInvalidConfiguration("apple-clang >= 14 is required by qt >= 6.8.3")
-@@ -440,7 +443,16 @@ class QtConan(ConanFile):
+@@ -440,7 +443,20 @@ class QtConan(ConanFile):
          if self.options.qtwayland:
              self.tool_requires("wayland/1.22.0")
          if cross_building(self):
@@ -25,6 +25,10 @@ index 2360ea166..b711fb79c 100644
 +                "qtdeclarative": bool(self.options.qtdeclarative),
 +                "qttools": bool(self.options.qttools),
 +                "qtshadertools": bool(self.options.qtshadertools),
++                # Host code generators do not need target SQL driver plugins.
++                "with_mysql": False,
++                "with_odbc": False,
++                "with_pq": False,
 +                # Keep bulky tools disabled in the host build as well.
 +                "disabled_features": str(self.options.disabled_features),
 +            }
@@ -32,7 +36,7 @@ index 2360ea166..b711fb79c 100644
  
      def generate(self):
          ms = VirtualBuildEnv(self)
-@@ -489,5 +501,22 @@ class QtConan(ConanFile):
+@@ -489,5 +505,22 @@ class QtConan(ConanFile):
          tc.variables["QT_BUILD_TESTS"] = "OFF"
          tc.variables["QT_BUILD_EXAMPLES"] = "OFF"
  

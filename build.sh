@@ -92,7 +92,7 @@ build_recipes() {
 			"${CONAN_PROFILES_ARRAY[@]}" \
 			--build=missing \
 			--test-folder= \
-			--core-conf core.sources.patch:extra_path="$scriptDir/conan_patches" \
+			--core-conf core.sources.patch:extra_path="${CONAN_PATCH_EXTRA_PATH:-$scriptDir/conan_patches}" \
 			--options "qt/*:android_sdk=${ANDROID_HOME:-}"
 	done
 }
@@ -215,21 +215,28 @@ build_recipes_with_patches() {
 			qt6-11-1) qtVersion='6.11.1' ;;
 			*) error "unknown Qt variant: $QT_VARIANT" ;;
 		esac
-		# Pin and patch the Qt recipe only for the explicit legacy-Windows build.
-		# Other platforms, normal Windows builds, and other Qt versions never use
-		# this checkout or recipe modification.
+		# Use the same pinned recipe for every Windows Qt 6 package. Win7 source
+		# and recipe patches remain exclusive to the x86/x64 legacy builds;
+		# native Windows ARM64 targets Windows 10 and uses upstream Qt unchanged.
 		git fetch --no-tags origin "$cciQtRecipeRevision"
 		git -c advice.detachedHead=false checkout FETCH_HEAD
-		git apply --check "$scriptDir/conan_patches/qt6/recipe.diff"
-		git apply "$scriptDir/conan_patches/qt6/recipe.diff"
-		build_recipes "qt/$qtVersion"
-		verify_patched_qt_recipe "$qtVersion"
+		if [[ "${platform:-}" == 'windows-arm64' ]] ; then
+			qtUpstreamPatchPath="$tempDir/qt-upstream-patches"
+			mkdir -p "$qtUpstreamPatchPath"
+			CONAN_PATCH_EXTRA_PATH="$qtUpstreamPatchPath" build_recipes "qt/$qtVersion"
+			conan list "qt/$qtVersion:*" | grep -Fq "qt/$qtVersion" \
+				|| error "qt/$qtVersion package was not created"
+		else
+			git apply --check "$scriptDir/conan_patches/qt6/recipe.diff"
+			git apply "$scriptDir/conan_patches/qt6/recipe.diff"
+			build_recipes "qt/$qtVersion"
+			verify_patched_qt_recipe "$qtVersion"
 
-		# The same sparse CCI checkout is reused by the following ONNX step.
-		# The patched Qt recipe and its sources are already exported to Conan's
-		# cache, so restore only the tracked recipe edit before switching commits.
-		git apply --reverse --check "$scriptDir/conan_patches/qt6/recipe.diff"
-		git apply --reverse "$scriptDir/conan_patches/qt6/recipe.diff"
+			# The same sparse CCI checkout is reused by the following ONNX step.
+			# Restore only the tracked recipe edit before switching commits.
+			git apply --reverse --check "$scriptDir/conan_patches/qt6/recipe.diff"
+			git apply --reverse "$scriptDir/conan_patches/qt6/recipe.diff"
+		fi
 	fi
 
 	# not deleting the cloned repo because it's still used in the next step
@@ -352,6 +359,15 @@ case "$platform" in
 		;;
 	windows-arm64)
 		CONAN_PROFILES_JSON_ARRAY='["msvc-arm64"]'
+		case "${QT_VARIANT:-qt5}" in
+			qt5) qtVersion='qt5' ;;
+			qt6-8-3) qtVersion='6.8.3' ;;
+			qt6-11-1) qtVersion='6.11.1' ;;
+			*) error "unknown Qt variant: ${QT_VARIANT:-}" ;;
+		esac
+		# Windows on ARM starts with Windows 10, so select only the Qt version;
+		# the legacy target_pre_windows10 definitions remain exclusive to x86/x64.
+		CONAN_OPTIONS="--options '${conanOptionQtVersionPrefix}${qtVersion}'"
 		;;
 	windows-x64)
 		CONAN_PROFILES_JSON_ARRAY='["msvc-x64"]'
