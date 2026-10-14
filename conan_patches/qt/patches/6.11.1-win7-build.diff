@@ -56,3 +56,27 @@ index 11c9d662..5c977401 100644
  
              dataoffset += input.headerSize();
              payloadoffset += input.payloadSize();
+diff --git a/src/corelib/io/qfilesystemengine_win.cpp b/src/corelib/io/qfilesystemengine_win.cpp
+index 38ba2b9d..4d463dac 100644
+--- a/src/corelib/io/qfilesystemengine_win.cpp
++++ b/src/corelib/io/qfilesystemengine_win.cpp
+@@ -1025,12 +1025,17 @@ static inline QByteArray fileId(HANDLE handle)
+ // File ID for Windows starting from version 8.
+ QByteArray fileIdWin8(HANDLE handle)
+ {
+ #if !defined(QT_BOOTSTRAPPED)
+     QByteArray result;
+-    FILE_ID_INFO infoEx;
++    // FILE_ID_INFO is hidden by the Windows SDK when targeting Windows 7.
++    // Keep the identical ABI for the runtime-only Windows 8+ code path.
++    struct FileIdInfo {
++        ULONGLONG VolumeSerialNumber;
++        FILE_ID_128 FileId;
++    } infoEx;
+     if (GetFileInformationByHandleEx(
+                 handle,
+                 static_cast<FILE_INFO_BY_HANDLE_CLASS>(18), // FileIdInfo in Windows 8
+-                &infoEx, sizeof(FILE_ID_INFO))) {
++                &infoEx, sizeof(infoEx))) {
+         result = QByteArray::number(infoEx.VolumeSerialNumber, 16);
+         result += ':';
