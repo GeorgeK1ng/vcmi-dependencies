@@ -142,3 +142,76 @@ index 00000000..9196f00b
 +#endif
 +
 +#endif // QRHIDCOMP_P_H
+diff --git a/src/corelib/global/qlegacyshims_win_p.h b/src/corelib/global/qlegacyshims_win_p.h
+index 31e82f2..8aad10b 100644
+--- a/src/corelib/global/qlegacyshims_win_p.h
++++ b/src/corelib/global/qlegacyshims_win_p.h
+@@ -10,6 +10,68 @@
+ #include <shellscalingapi.h>
+ #include <winternl.h>
+ 
++// The Windows SDK hides pointer-input declarations when targeting Windows 7,
++// although the compatibility shims below need their ABI to stand in for the
++// Windows 8 functions. Keep these definitions local to the legacy target.
++#if defined(WINVER) && WINVER < 0x0602 && !defined(POINTER_STRUCTURES)
++#  define POINTER_STRUCTURES
++
++enum tagPOINTER_INPUT_TYPE {
++    PT_POINTER = 1,
++    PT_TOUCH = 2,
++    PT_PEN = 3,
++    PT_MOUSE = 4
++};
++typedef DWORD POINTER_INPUT_TYPE;
++typedef UINT32 POINTER_FLAGS;
++#  define POINTER_FLAG_NONE 0x00000000
++
++typedef enum tagPOINTER_BUTTON_CHANGE_TYPE {
++    POINTER_CHANGE_NONE,
++    POINTER_CHANGE_FIRSTBUTTON_DOWN,
++    POINTER_CHANGE_FIRSTBUTTON_UP,
++    POINTER_CHANGE_SECONDBUTTON_DOWN,
++    POINTER_CHANGE_SECONDBUTTON_UP,
++    POINTER_CHANGE_THIRDBUTTON_DOWN,
++    POINTER_CHANGE_THIRDBUTTON_UP,
++    POINTER_CHANGE_FOURTHBUTTON_DOWN,
++    POINTER_CHANGE_FOURTHBUTTON_UP,
++    POINTER_CHANGE_FIFTHBUTTON_DOWN,
++    POINTER_CHANGE_FIFTHBUTTON_UP
++} POINTER_BUTTON_CHANGE_TYPE;
++
++typedef struct tagPOINTER_INFO {
++    POINTER_INPUT_TYPE pointerType;
++    UINT32 pointerId;
++    UINT32 frameId;
++    POINTER_FLAGS pointerFlags;
++    HANDLE sourceDevice;
++    HWND hwndTarget;
++    POINT ptPixelLocation;
++    POINT ptHimetricLocation;
++    POINT ptPixelLocationRaw;
++    POINT ptHimetricLocationRaw;
++    DWORD dwTime;
++    UINT32 historyCount;
++    INT32 InputData;
++    DWORD dwKeyStates;
++    UINT64 PerformanceCount;
++    POINTER_BUTTON_CHANGE_TYPE ButtonChangeType;
++} POINTER_INFO;
++
++typedef UINT32 TOUCH_FLAGS;
++typedef UINT32 TOUCH_MASK;
++typedef struct tagPOINTER_TOUCH_INFO {
++    POINTER_INFO pointerInfo;
++    TOUCH_FLAGS touchFlags;
++    TOUCH_MASK touchMask;
++    RECT rcContact;
++    RECT rcContactRaw;
++    UINT32 orientation;
++    UINT32 pressure;
++} POINTER_TOUCH_INFO;
++#endif
++
+ //
+ //  W A R N I N G
+ //  -------------
