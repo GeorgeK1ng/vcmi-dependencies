@@ -148,7 +148,10 @@ jobs:
       run: |
         pipx install conan
         conan profile detect
-        echo 'tools.files.download:retry=50' >> ~/.conan2/global.conf
+        # Respect the relocated Windows CONAN_HOME while retaining Conan's
+        # default home on every other operating system.
+        conanHome=$(conan config home)
+        echo 'tools.files.download:retry=50' >> "$conanHome/global.conf"
 
     - name: Restore Conan cache
       id: conan-cache-restore
