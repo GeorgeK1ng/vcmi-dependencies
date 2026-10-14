@@ -59,3 +59,13 @@ index 2360ea166..b711fb79c 100644
 +
          if is_msvc(self) and "MT" in msvc_runtime_flag(self):
              tc.variables["FEATURE_static_runtime"] = "ON"
+@@ -914,6 +947,9 @@ class QtConan(ConanFile):
+             targets.extend(["qmlformat", "qml", "qmlprofiler", "qmlpreview", "qmltc"])
+             if Version(self.version) >= "6.8.3":
+                 targets.extend(["qmlaotstats"])
++            if Version(self.version) >= "6.11.0":
++                # Host tools added in Qt 6.11 and consumed by QtDeclarative's CMake macros.
++                targets.extend(["qmlcontextpropertydump", "qmldom", "qmljsrootgen"])
+ 
+             # Note: consider "qmltestrunner", see https://github.com/conan-io/conan-center-index/issues/24276
+         if self.options.get_safe("qtremoteobjects"):
