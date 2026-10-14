@@ -34,7 +34,7 @@ diff --git a/src/corelib/kernel/qtmochelpers.h b/src/corelib/kernel/qtmochelpers
 index 11c9d662..5c977401 100644
 --- a/src/corelib/kernel/qtmochelpers.h
 +++ b/src/corelib/kernel/qtmochelpers.h
-@@ -250,8 +250,11 @@ struct UintData
+@@ -251,8 +251,11 @@ struct UintData
      copyTo(Result &result, size_t dataoffset, uint &metatypeoffset) const
      {
          uint *ptr = result.staticData.data;
@@ -47,7 +47,7 @@ index 11c9d662..5c977401 100644
              // copy the uint data
              q20::copy_n(input.header, input.headerSize(), ptr + dataoffset);
              q20::copy_n(input.payload, input.payloadSize(), ptr + payloadoffset);
-@@ -258,7 +261,7 @@ struct UintData
+@@ -259,7 +262,7 @@ struct UintData
              input.adjustOffsets(ptr, uint(dataoffset), uint(payloadoffset), metatypeoffset);
  
              // copy the metatypes
